@@ -6,7 +6,7 @@ import { Search, MoreVertical, Paperclip, Smile, Mic, Send, Check, CheckCheck, B
 import { generateResponseSuggestion } from '../services/geminiService';
 
 // Flatten contacts for the list
-const ALL_CONTACTS = INITIAL_DATA.flatMap(col => col.items);
+// const ALL_CONTACTS = INITIAL_DATA.flatMap(col => col.items);
 
 interface Message {
     id: string;
@@ -24,13 +24,14 @@ interface ChatInterfaceProps {
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelectContact }) => {
     // const [selectedContact, setSelectedContact] = useState<Contact | null>(null); // Lifted to App
     const [messages, setMessages] = useState<Record<string, Message[]>>({});
+    const [contacts, setContacts] = useState<Contact[]>([]); // Dynamic contacts state
     const [inputText, setInputText] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const filteredContacts = ALL_CONTACTS.filter(c =>
+    const filteredContacts = contacts.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.phone.includes(searchTerm)
     );
@@ -43,11 +44,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
         scrollToBottom();
     }, [messages, selectedContact]);
 
-    // ... inside ChatInterface ...
-    const { token, socket } = useAuth(); // Assuming useAuth provides socket
-
-    // ... existing refs and state ...
+    const { token, socket } = useAuth();
     const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin;
+
+    // Load initial contacts
+    useEffect(() => {
+        const fetchContacts = async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/kanban`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    // Flatten columns to contacts list and sort by last message (implied by order or timestamp if available)
+                    const allContacts = data.flatMap((col: any) => col.items);
+                    setContacts(allContacts);
+                }
+            } catch (error) {
+                console.error('Error fetching contacts:', error);
+            }
+        };
+        if (token) fetchContacts();
+    }, [token, API_URL]);
+
 
     // Fetch Messages logic
     useEffect(() => {
@@ -55,7 +74,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
 
         console.log('Carregando mensagens para contato:', selectedContact.id);
 
-        // Load messages from API
         const fetchMessages = async () => {
             try {
                 const response = await fetch(`${API_URL}/api/contacts/${selectedContact.id}/messages`, {
@@ -72,12 +90,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                         time: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         status: 'read'
                     }));
-                    console.log('Mensagens formatadas:', uiMessages);
-                    setMessages(prev => {
-                        const updated = { ...prev, [selectedContact.id]: uiMessages };
-                        console.log('Estado de mensagens atualizado:', updated);
-                        return updated;
-                    });
+                    setMessages(prev => ({ ...prev, [selectedContact.id]: uiMessages }));
                 }
             } catch (error) {
                 console.error('Error fetching messages:', error);
@@ -95,20 +108,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
         const handleNewMessage = (newMsg: any) => {
             console.log('Mensagem recebida via socket:', newMsg);
             try {
-                // Only update if it belongs to current contact or if we want to update cache
                 const contactId = newMsg.contactId;
-                console.log('Contact ID:', contactId);
-                console.log('Selected Contact ID:', selectedContact?.id);
 
+                // 1. Update Messages Chat View
                 setMessages(prev => {
                     const contactMessages = prev[contactId] || [];
-                    console.log('Mensagens existentes para este contato:', contactMessages.length);
-
-                    // Avoid duplicates
-                    if (contactMessages.some(m => m.id === newMsg.id)) {
-                        console.log('Mensagem duplicada, ignorando');
-                        return prev;
-                    }
+                    if (contactMessages.some(m => m.id === newMsg.id)) return prev;
 
                     const uiMsg: Message = {
                         id: newMsg.id,
@@ -118,13 +123,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                         status: 'read'
                     };
 
-                    console.log('Adicionando mensagem:', uiMsg);
-
-                    return {
-                        ...prev,
-                        [contactId]: [...contactMessages, uiMsg]
-                    };
+                    return { ...prev, [contactId]: [...contactMessages, uiMsg] };
                 });
+
+                // 2. Update Contacts List (Sidebar)
+                setContacts(prev => {
+                    const contactIndex = prev.findIndex(c => c.id === contactId);
+                    if (contactIndex === -1) return prev; // Se não achar, talvez devesse buscar novamente?
+
+                    const updatedContact = { ...prev[contactIndex] };
+                    updatedContact.lastMessagePreview = newMsg.content;
+                    updatedContact.lastMessageTime = new Date(newMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    if (selectedContact?.id !== contactId) {
+                        updatedContact.unreadCount = (updatedContact.unreadCount || 0) + 1;
+                    }
+
+                    // Remove current and unshift to top
+                    const newContacts = [...prev];
+                    newContacts.splice(contactIndex, 1);
+                    newContacts.unshift(updatedContact);
+
+                    return newContacts;
+                });
+
             } catch (error) {
                 console.error('Erro ao processar mensagem:', error);
             }
@@ -134,7 +156,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
         return () => {
             socket.off('message:new', handleNewMessage);
         };
-    }, [socket]);
+    }, [socket, selectedContact]); // Added selectedContact to dep array for unread count logic
 
     const handleSendMessage = async () => {
         if (!inputText.trim() || !selectedContact) return;
