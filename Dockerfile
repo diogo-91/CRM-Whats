@@ -24,5 +24,5 @@ RUN npm run build
 # Expor porta do servidor
 EXPOSE 3001
 
-# Comando de inicialização (migrar, seed e iniciar)
-CMD npx prisma migrate deploy && npx prisma db seed && node server/index.js
+# Comando de inicialização (migrar, seed opcional, e iniciar)
+CMD npx prisma migrate deploy && (npx prisma db seed || true) && node server/index.js
