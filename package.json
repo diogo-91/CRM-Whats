@@ -31,5 +31,8 @@
     "prisma": "^5.22.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }
