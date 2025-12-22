@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Column {
+  id    String    @id 
+  title String
+  color String
+  order Int       @default(0)
+  items Contact[]
+}
+
+model Contact {
+  id              String   @id @default(uuid())
+  name            String
+  phone           String
+  avatarUrl       String?
+  lastMessageTime String? 
+  unreadCount     Int      @default(0)
+  order           Int      @default(0)
+  lastMessagePreview String?
+  status          String   @default("offline") 
+  assignedTo      String?
+  columnId        String
+  column          Column   @relation(fields: [columnId], references: [id])
+  tags            Tag[]
+  messages        Message[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  color     String
+  label     String?
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id       String   @id @default(uuid())
+  email    String   @unique
+  password String
+  name     String
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  fromMe    Boolean  @default(false)
+  timestamp DateTime @default(now())
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}

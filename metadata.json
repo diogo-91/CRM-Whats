@@ -1,0 +1,5 @@
+{
+  "name": "ZapFlow CRM",
+  "description": "A Kanban-style CRM for managing WhatsApp conversations and leads, featuring AI-powered response suggestions.",
+  "requestFramePermissions": []
+}
