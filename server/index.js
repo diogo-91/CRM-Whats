@@ -266,7 +266,17 @@ app.post('/api/webhooks/evolution', async (req, res) => {
   console.log('Headers:', req.headers);
   console.log('Body:', JSON.stringify(req.body, null, 2));
 
+  if (!req.body) {
+    console.log('Webhook recebido sem corpo (body empty)');
+    return res.sendStatus(200);
+  }
+
   const { data, sender, eventType } = req.body;
+
+  if (!data && !eventType) {
+    console.log('Payload do webhook inválido ou incompleto');
+    return res.sendStatus(200);
+  }
 
   // Verificar se é evento de mensagem recebida
   if (eventType !== 'MESSAGES_UPSERT') {
