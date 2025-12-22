@@ -271,15 +271,16 @@ app.post('/api/webhooks/evolution', async (req, res) => {
     return res.sendStatus(200);
   }
 
-  const { data, sender, eventType } = req.body;
+  const { data, sender, eventType, event } = req.body;
 
-  if (!data && !eventType) {
+  if (!data && !eventType && !event) {
     console.log('Payload do webhook inválido ou incompleto');
     return res.sendStatus(200);
   }
 
   // Verificar se é evento de mensagem recebida
-  if (eventType !== 'MESSAGES_UPSERT') {
+  const currentEvent = eventType || event;
+  if (currentEvent !== 'MESSAGES_UPSERT' && currentEvent !== 'messages.upsert') {
     return res.sendStatus(200); // Ignorar outros eventos por enquanto
   }
 
