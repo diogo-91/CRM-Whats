@@ -262,6 +262,10 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
 // URL para configurar na Evolution: http://SEU_IP_OU_TUNNEL:3001/api/webhooks/evolution
 app.post('/api/webhooks/evolution', async (req, res) => {
   // Evolution envia payload com dados da mensagem
+  console.log('--- EXECUTANDO WEBHOOK EVOLUTION ---');
+  console.log('Headers:', req.headers);
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+
   const { data, sender, eventType } = req.body;
 
   // Verificar se é evento de mensagem recebida
