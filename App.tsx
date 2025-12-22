@@ -16,7 +16,7 @@ import { Search, Wifi, WifiOff } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // URL do Backend
-const API_URL = import.meta.env.PROD ? window.location.origin : 'http://localhost:3001';
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin;
 
 function AppContent() {
   const { isAuthenticated, token, socket } = useAuth();

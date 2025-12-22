@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Mail, User, ArrowRight, Loader2 } from 'lucide-react';
 
-const API_URL = import.meta.env.PROD ? window.location.origin : 'http://localhost:3001';
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin;
 
 export default function LoginInterface() {
     const { login } = useAuth();

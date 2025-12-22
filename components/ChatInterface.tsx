@@ -47,7 +47,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
     const { token, socket } = useAuth(); // Assuming useAuth provides socket
 
     // ... existing refs and state ...
-    const API_URL = import.meta.env.PROD ? window.location.origin : 'http://localhost:3001';
+    const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin;
 
     // Fetch Messages logic
     useEffect(() => {
