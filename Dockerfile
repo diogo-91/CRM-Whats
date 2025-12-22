@@ -1,9 +1,9 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Instalar OpenSSL 1.1 (necessário para Prisma no Alpine)
-RUN apk add --no-cache openssl1.1-compat
+# Instalar OpenSSL (necessário para Prisma)
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 # Copiar arquivos de dependências
 COPY package*.json ./
@@ -12,7 +12,7 @@ COPY prisma ./prisma/
 # Instalar dependências
 RUN npm install
 
-# Gerar cliente do Prisma com binário correto para Alpine
+# Gerar cliente do Prisma
 RUN npx prisma generate
 
 # Copiar resto do código
