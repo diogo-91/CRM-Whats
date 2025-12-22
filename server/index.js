@@ -259,6 +259,12 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
       }
     });
 
+    // Atualizar timestamp do contato para subir no Kanban
+    await prisma.contact.update({
+      where: { id: contact.id },
+      data: { updatedAt: new Date() }
+    });
+
     // 3. Emitir para Frontend
     console.log('Emitindo mensagem via socket:', { ...message, contactId: contact.id });
     io.emit('message:new', { ...message, contactId: contact.id });
