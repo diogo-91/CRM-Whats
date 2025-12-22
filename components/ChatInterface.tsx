@@ -47,6 +47,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
     const { token, socket } = useAuth(); // Assuming useAuth provides socket
 
     // ... existing refs and state ...
+    const API_URL = import.meta.env.PROD ? window.location.origin : 'http://localhost:3001';
 
     // Fetch Messages logic
     useEffect(() => {
@@ -57,7 +58,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
         // Load messages from API
         const fetchMessages = async () => {
             try {
-                const response = await fetch(`http://localhost:3001/api/contacts/${selectedContact.id}/messages`, {
+                const response = await fetch(`${API_URL}/api/contacts/${selectedContact.id}/messages`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
@@ -150,7 +151,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
             setInputText('');
             setAiSuggestion(null);
 
-            const response = await fetch('http://localhost:3001/api/messages', {
+            const response = await fetch(`${API_URL}/api/messages`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
