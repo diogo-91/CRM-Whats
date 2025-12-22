@@ -340,11 +340,7 @@ io.on('connection', (socket) => {
 
 // Iniciar Servidor
 // --- Catch-all para Frontend (SPA) ---
-app.get('/(.*)', (req, res) => {
-  // Ignora requisições para a API
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ error: 'Endpoint não encontrado' });
-  }
+app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
