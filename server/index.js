@@ -125,6 +125,18 @@ app.get('/', (req, res) => {
   res.send('ZapFlow API (Auth Secured) is running 🚀');
 });
 
+// Endpoint Temporário para Limpeza
+app.get('/api/dangerous/cleanup-fakes', async (req, res) => {
+  const FAKE_IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'];
+  try {
+    await prisma.tag.deleteMany({ where: { contactId: { in: FAKE_IDS } } });
+    const { count } = await prisma.contact.deleteMany({ where: { id: { in: FAKE_IDS } } });
+    res.json({ message: `Limpeza concluída. ${count} contatos falsos removidos.` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 2. Obter todas as colunas e contatos (Kanban)
 app.get('/api/kanban', authenticateToken, async (req, res) => {
   try {
