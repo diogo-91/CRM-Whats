@@ -175,13 +175,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
     }, [socket, selectedContact]);
 
     const handleSendMessage = async () => {
-        if (!inputText.trim() || !selectedContact) return;
+        console.log('[ChatInterface] handleSendMessage chamado');
+        console.log('[ChatInterface] inputText:', inputText);
+        console.log('[ChatInterface] selectedContact:', selectedContact);
+
+        if (!inputText.trim() || !selectedContact) {
+            console.log('[ChatInterface] Mensagem vazia ou sem contato selecionado');
+            return;
+        }
 
         try {
             const payload = { contactId: selectedContact.id, content: inputText };
             const textToSend = inputText;
             setInputText('');
             setAiSuggestion(null);
+
+            console.log('[ChatInterface] Enviando para API:', payload);
+            console.log('[ChatInterface] API_URL:', API_URL);
 
             const response = await fetch(`${API_URL}/api/messages`, {
                 method: 'POST',
@@ -192,13 +202,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                 body: JSON.stringify(payload)
             });
 
+            console.log('[ChatInterface] Response status:', response.status);
+
             if (!response.ok) {
-                console.error('Failed to send message');
+                const errorData = await response.text();
+                console.error('[ChatInterface] Erro ao enviar:', errorData);
+                alert('Erro ao enviar mensagem. Verifique o console.');
                 setInputText(textToSend);
+            } else {
+                console.log('[ChatInterface] Mensagem enviada com sucesso!');
             }
 
         } catch (error) {
-            console.error('Error sending message:', error);
+            console.error('[ChatInterface] Erro ao enviar mensagem:', error);
+            alert('Erro ao enviar mensagem: ' + error);
         }
     };
 
