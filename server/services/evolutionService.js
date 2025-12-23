@@ -21,13 +21,14 @@ export const evolutionService = {
             // Removing non-digits
             const cleanNumber = number.replace(/\D/g, '');
 
-            // Evolution API v2 expects number with @s.whatsapp.net suffix
-            const formattedNumber = `${cleanNumber}@s.whatsapp.net`;
+            console.log(`[Evolution] Enviando mensagem para: ${cleanNumber}`);
 
             const apiUrl = `${API_URL}/message/sendText/${INSTANCE}`;
             const payload = {
-                number: formattedNumber,
-                text: text
+                number: cleanNumber, // Evolution v2 aceita sem @s.whatsapp.net
+                textMessage: {
+                    text: text
+                }
             };
 
             const headers = {
@@ -35,10 +36,15 @@ export const evolutionService = {
                 'Content-Type': 'application/json'
             };
 
+            console.log(`[Evolution] URL: ${apiUrl}`);
+            console.log(`[Evolution] Payload:`, JSON.stringify(payload, null, 2));
+
             const response = await axios.post(apiUrl, payload, { headers });
+            console.log(`[Evolution] Resposta:`, response.data);
             return response.data;
         } catch (error) {
-            console.error('Error sending WhatsApp message:', error.response?.data || error.message);
+            console.error('[Evolution] Erro ao enviar mensagem:', error.response?.data || error.message);
+            console.error('[Evolution] Status:', error.response?.status);
             throw error;
         }
     },
