@@ -53,8 +53,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     <div className="h-screen w-64 bg-[#111B21] flex flex-col py-6 px-4 flex-shrink-0 z-20 border-r border-gray-800">
       {/* Logo and Clock */}
       <div className="mb-8">
-        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg mb-3">
-          <span>CRM</span>
+        <div className="mb-3">
+          <h1 className="text-white font-bold text-xl leading-tight">CRM</h1>
+          <h2 className="text-white font-bold text-xl leading-tight">WHATSAPP</h2>
         </div>
         <div className="text-gray-400 text-xs">
           <div className="font-medium text-gray-300">{formatDate(currentTime)}</div>
