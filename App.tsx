@@ -12,7 +12,7 @@ import SettingsInterface from './components/SettingsInterface';
 import LoginInterface from './components/LoginInterface';
 import { INITIAL_DATA } from './constants';
 import { Column as ColumnType, Contact } from './types';
-import { Search, Wifi, WifiOff } from 'lucide-react';
+import { Search, Wifi, WifiOff, Menu } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // URL do Backend
@@ -157,11 +157,27 @@ function AppContent() {
     return <LoginInterface />;
   }
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="flex h-screen bg-[#DFE3E5] overflow-hidden font-sans">
-      <Sidebar activeView={currentView} onViewChange={setCurrentView} />
+      <Sidebar
+        activeView={currentView}
+        onViewChange={setCurrentView}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        {/* Mobile Header */}
+        <div className="md:hidden bg-[#111B21] h-14 flex items-center px-4 justify-between border-b border-gray-800 flex-shrink-0">
+          <button onClick={() => setIsSidebarOpen(true)} className="text-gray-300">
+            <Menu size={24} />
+          </button>
+          <span className="text-white font-bold">CRM - WHATSAPP</span>
+          <div className="w-6"></div> {/* Spacer for centering */}
+        </div>
+
         {currentView === 'kanban' ? (
           <>
             <div className="h-14 bg-[#F0F2F5] border-b border-gray-300 flex items-center px-4 justify-between flex-shrink-0">
