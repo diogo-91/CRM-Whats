@@ -498,8 +498,11 @@ app.get('/auth/google/callback', async (req, res) => {
       }
     });
 
-    // Redirecionar de volta para o frontend (Schedule page)
-    res.redirect(`${req.protocol}://${req.get('host').replace(':3001', ':5173')}/`); // Hack simples para dev. Em prod remove port.
+    // Redirecionar de volta para o frontend
+    const redirectUrl = process.env.NODE_ENV === 'production'
+      ? `${req.protocol}://${req.get('host')}/`
+      : `${req.protocol}://${req.get('host').replace(':3001', ':5173')}/`;
+    res.redirect(redirectUrl);
   } catch (error) {
     console.error('Erro no callback do Google:', error);
     res.status(500).send('Authentication failed');
