@@ -34,33 +34,28 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     return () => clearInterval(timer);
   }, []);
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('pt-BR', {
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short'
+  const formatDateTime = (date: Date) => {
+    const datePart = date.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     });
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('pt-BR', {
+    const timePart = date.toLocaleTimeString('pt-BR', {
       hour: '2-digit',
       minute: '2-digit'
     });
+    return `${datePart} - ${timePart}`;
   };
 
   return (
     <div className="h-screen w-64 bg-[#111B21] flex flex-col py-6 px-4 flex-shrink-0 z-20 border-r border-gray-800">
       {/* Logo and Clock */}
-      <div className="mb-8">
-        <div className="mb-3">
-          <h1 className="text-white font-bold text-xl leading-tight">CRM</h1>
-          <h2 className="text-white font-bold text-xl leading-tight">WHATSAPP</h2>
-        </div>
-        <div className="text-gray-400 text-xs">
-          <div className="font-medium text-gray-300">{formatDate(currentTime)}</div>
-          <div className="text-emerald-500 font-bold text-sm mt-0.5">{formatTime(currentTime)}</div>
-        </div>
+      <div className="mb-8 pl-1">
+        <h1 className="text-white font-bold text-lg mb-1">CRM - WHATSAPP</h1>
+        <p className="text-gray-400 text-xs font-medium capitalize">
+          {formatDateTime(currentTime)}
+        </p>
       </div>
 
       <nav className="flex flex-col space-y-2 flex-1">
