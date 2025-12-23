@@ -72,7 +72,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    // Flatten columns to contacts list and sort by last message (implied by order or timestamp if available)
                     const allContacts = data.flatMap((col: any) => col.items);
                     setContacts(allContacts);
                 }
@@ -80,7 +79,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                 console.error('Error fetching contacts:', error);
             }
         };
-        if (token) fetchContacts();
+
+        if (token) {
+            fetchContacts();
+            // Auto-refresh a cada 10 segundos
+            const interval = setInterval(() => {
+                fetchContacts();
+            }, 10000);
+
+            return () => clearInterval(interval);
+        }
     }, [token, API_URL]);
 
 
