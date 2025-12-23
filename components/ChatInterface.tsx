@@ -1,13 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { INITIAL_DATA } from '../constants';
 import { Contact } from '../types';
-import { Search, MoreVertical, Paperclip, Smile, Mic, Send, Check, CheckCheck, Bot, X, Trash2, StopCircle } from 'lucide-react';
+import { Search, MoreVertical, Paperclip, Smile, Mic, Send, CheckCheck, Bot, X, Trash2, ArrowLeft } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { generateResponseSuggestion } from '../services/geminiService';
-
-// Flatten contacts for the list
-// const ALL_CONTACTS = INITIAL_DATA.flatMap(col => col.items);
 
 interface Message {
     id: string;
@@ -25,9 +21,8 @@ interface ChatInterfaceProps {
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelectContact }) => {
-    // const [selectedContact, setSelectedContact] = useState<Contact | null>(null); // Lifted to App
     const [messages, setMessages] = useState<Record<string, Message[]>>({});
-    const [contacts, setContacts] = useState<Contact[]>([]); // Dynamic contacts state
+    const [contacts, setContacts] = useState<Contact[]>([]);
     const [inputText, setInputText] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
@@ -82,7 +77,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
 
         if (token) {
             fetchContacts();
-            // Auto-refresh a cada 10 segundos
             const interval = setInterval(() => {
                 fetchContacts();
             }, 10000);
@@ -96,8 +90,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
     useEffect(() => {
         if (!selectedContact) return;
 
-        console.log('Carregando mensagens para contato:', selectedContact.id);
-
         const fetchMessages = async () => {
             try {
                 const response = await fetch(`${API_URL}/api/contacts/${selectedContact.id}/messages`, {
@@ -105,8 +97,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('Mensagens carregadas do banco:', data);
-                    // Map DB messages to UI format
                     const uiMessages: Message[] = data.map((msg: any) => ({
                         id: msg.id,
                         text: msg.content,
@@ -125,14 +115,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
 
         fetchMessages();
         setAiSuggestion(null);
-    }, [selectedContact, token]); // Add token dependency
+    }, [selectedContact, token]);
 
     // Listen for new messages
     useEffect(() => {
         if (!socket) return;
 
         const handleNewMessage = (newMsg: any) => {
-            console.log('Mensagem recebida via socket:', newMsg);
             try {
                 const contactId = newMsg.contactId;
 
@@ -157,7 +146,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                 // 2. Update Contacts List (Sidebar)
                 setContacts(prev => {
                     const contactIndex = prev.findIndex(c => c.id === contactId);
-                    if (contactIndex === -1) return prev; // Se não achar, talvez devesse buscar novamente?
+                    if (contactIndex === -1) return prev;
 
                     const updatedContact = { ...prev[contactIndex] };
                     updatedContact.lastMessagePreview = newMsg.content;
@@ -167,7 +156,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                         updatedContact.unreadCount = (updatedContact.unreadCount || 0) + 1;
                     }
 
-                    // Remove current and unshift to top
                     const newContacts = [...prev];
                     newContacts.splice(contactIndex, 1);
                     newContacts.unshift(updatedContact);
@@ -184,19 +172,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
         return () => {
             socket.off('message:new', handleNewMessage);
         };
-    }, [socket, selectedContact]); // Added selectedContact to dep array for unread count logic
+    }, [socket, selectedContact]);
 
     const handleSendMessage = async () => {
         if (!inputText.trim() || !selectedContact) return;
 
         try {
             const payload = { contactId: selectedContact.id, content: inputText };
-
-            // Optimistic update
-            // (Optional, can wait for socket to avoid duplicate logic complexity, but lets keep it simple for now)
-            // Actually, let's wait for the API response or socket to confirm. 
-            // But for UX, clearing input immediately is good.
-
             const textToSend = inputText;
             setInputText('');
             setAiSuggestion(null);
@@ -212,7 +194,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
 
             if (!response.ok) {
                 console.error('Failed to send message');
-                // Revert or show error (simplified here)
                 setInputText(textToSend);
             }
 
@@ -231,11 +212,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
         setIsTyping(true);
         const suggestion = await generateResponseSuggestion(selectedContact.name, lastMsg);
         setAiSuggestion(suggestion);
-        setInputText(suggestion); // Auto-fill input
+        setInputText(suggestion);
         setIsTyping(false);
     };
-
-    // --- New Feature Handlers ---
 
     const toggleSearch = () => {
         setIsSearchOpen(!isSearchOpen);
@@ -348,8 +327,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
 
     return (
         <div className="flex h-full bg-white border-t border-gray-200">
-            {/* Sidebar List */}
-            <div className="w-[350px] flex flex-col border-r border-gray-200 bg-white">
+            {/* Sidebar List - Hidden on mobile if contact selected */}
+            <div className={`
+                ${selectedContact ? 'hidden md:flex' : 'flex'} 
+                w-full md:w-[350px] flex-col border-r border-gray-200 bg-white
+            `}>
                 <div className="h-16 bg-[#F0F2F5] flex items-center justify-between px-4 border-b border-gray-200">
                     <div className="relative w-full">
                         <input
@@ -369,18 +351,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                             key={contact.id}
                             onClick={async () => {
                                 onSelectContact(contact);
-                                // Optimistically clear unread count
                                 setContacts(prev => prev.map(c =>
                                     c.id === contact.id ? { ...c, unreadCount: 0 } : c
                                 ));
-                                // Call API to mark as read
                                 try {
                                     await fetch(`${API_URL}/api/contacts/${contact.id}/read`, {
                                         method: 'POST',
                                         headers: { 'Authorization': `Bearer ${token}` }
                                     });
                                 } catch (err) {
-                                    console.error('Error marking as read:', err);
+                                    // ignore error
                                 }
                             }}
                             className={`flex items-center px-3 py-3 cursor-pointer hover:bg-[#F5F6F6] border-b border-gray-100 transition-colors ${selectedContact?.id === contact.id ? 'bg-[#F0F2F5]' : ''}`}
@@ -408,183 +388,198 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                 </div>
             </div>
 
-            {/* Chat Area */}
-            {selectedContact ? (
-                <div className="flex-1 flex flex-col bg-[#efeae2] relative">
-                    {/* Chat Header */}
-                    <div className="h-16 bg-[#F0F2F5] px-4 flex items-center justify-between border-b border-gray-200 z-10 relative">
-                        <div className="flex items-center cursor-pointer">
-                            <img src={selectedContact.avatarUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
-                            <div className="ml-3">
-                                <h2 className="text-gray-900 font-medium text-sm">{selectedContact.name}</h2>
-                                <p className="text-xs text-gray-500">
-                                    {isTyping ? <span className="text-green-600 font-bold">digitando...</span> : selectedContact.status === 'online' ? 'Online' : 'Visto por último hoje às 10:23'}
-                                </p>
+            {/* Chat Area - Hidden on mobile if NO contact selected */}
+            <div className={`
+                ${!selectedContact ? 'hidden md:flex' : 'flex'}
+                flex-1 flex-col bg-[#efeae2] relative
+            `}>
+                {selectedContact ? (
+                    <>
+                        {/* Chat Header */}
+                        <div className="h-16 bg-[#F0F2F5] px-4 flex items-center justify-between border-b border-gray-200 z-10 relative">
+                            <div className="flex items-center">
+                                {/* Back Button Mobile */}
+                                <button
+                                    onClick={() => onSelectContact(null)}
+                                    className="md:hidden mr-2 text-gray-500"
+                                >
+                                    <ArrowLeft size={24} />
+                                </button>
+
+                                <div className="flex items-center cursor-pointer">
+                                    <img src={selectedContact.avatarUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
+                                    <div className="ml-3">
+                                        <h2 className="text-gray-900 font-medium text-sm">{selectedContact.name}</h2>
+                                        <p className="text-xs text-gray-500">
+                                            {isTyping ? <span className="text-green-600 font-bold">digitando...</span> : selectedContact.status === 'online' ? 'Online' : 'Visto por último hoje às 10:23'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-4 text-gray-500 relative">
+                                {isSearchOpen ? (
+                                    <div className="flex items-center bg-white rounded-lg px-2 py-1 shadow-sm border border-gray-200 animate-in slide-in-from-right-5">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            placeholder="Buscar..."
+                                            className="w-40 text-sm border-none focus:outline-none"
+                                            value={messageSearchTerm}
+                                            onChange={(e) => setMessageSearchTerm(e.target.value)}
+                                        />
+                                        <X size={16} className="cursor-pointer ml-1 hover:text-red-500" onClick={toggleSearch} />
+                                    </div>
+                                ) : (
+                                    <Search size={20} className="cursor-pointer hover:text-gray-700" onClick={toggleSearch} />
+                                )}
+
+                                <div className="relative">
+                                    <MoreVertical size={20} className="cursor-pointer hover:text-gray-700" onClick={() => setShowMenu(!showMenu)} />
+                                    {showMenu && (
+                                        <div className="absolute right-0 top-8 bg-white shadow-lg rounded-lg py-2 w-48 border border-gray-100 z-50">
+                                            <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2" onClick={() => { setMessages(prev => ({ ...prev, [selectedContact.id]: [] })); setShowMenu(false); }}>
+                                                <Trash2 size={16} /> Limpar conversa
+                                            </button>
+                                            <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                                <Bot size={16} /> Gerar resumo IA
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4 text-gray-500 relative">
-                            {isSearchOpen ? (
-                                <div className="flex items-center bg-white rounded-lg px-2 py-1 shadow-sm border border-gray-200 animate-in slide-in-from-right-5">
-                                    <input
-                                        autoFocus
-                                        type="text"
-                                        placeholder="Buscar..."
-                                        className="w-40 text-sm border-none focus:outline-none"
-                                        value={messageSearchTerm}
-                                        onChange={(e) => setMessageSearchTerm(e.target.value)}
-                                    />
-                                    <X size={16} className="cursor-pointer ml-1 hover:text-red-500" onClick={toggleSearch} />
+
+                        {/* Chat Background Pattern */}
+                        <div className="absolute inset-0 opacity-[0.4] pointer-events-none bg-repeat" style={{ backgroundImage: 'url("https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg")', backgroundSize: '400px' }}></div>
+
+                        {/* Messages */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar z-0 relative">
+                            {displayedMessages.map((msg) => (
+                                <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[75%] rounded-lg px-2 py-1 shadow-sm text-sm relative group ${msg.sender === 'me' ? 'bg-[#D9FDD3] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
+                                        {msg.mediaUrl ? (
+                                            <div className="mb-0">
+                                                {msg.mediaType === 'image' && (
+                                                    <img src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} alt="Mídia" className="rounded-lg max-w-full max-h-[300px] object-cover cursor-pointer hover:opacity-95" onClick={() => window.open(msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`)} />
+                                                )}
+                                                {msg.mediaType === 'video' && (
+                                                    <video controls className="rounded-lg max-w-full max-h-[300px]" src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} />
+                                                )}
+                                                {msg.mediaType === 'audio' && (
+                                                    <audio controls className="w-[240px] h-10 mt-1" src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} />
+                                                )}
+                                                {msg.mediaType === 'document' && (
+                                                    <div className="flex items-center gap-3 bg-black/5 p-3 rounded-lg cursor-pointer hover:bg-black/10 transition-colors" onClick={() => window.open(msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`)}>
+                                                        <div className="bg-red-100 p-2 rounded text-red-500">
+                                                            <Paperclip size={20} />
+                                                        </div>
+                                                        <div className="flex-1 overflow-hidden">
+                                                            <span className="truncate block font-medium text-gray-700">Documento</span>
+                                                            <span className="text-xs text-gray-500 uppercase">{msg.mediaUrl?.split('.').pop()}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {msg.text && (msg.text !== 'Mídia enviada' && msg.text !== 'Áudio enviado') && <p className="text-gray-800 pt-1 pb-4 px-1">{msg.text}</p>}
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-800 leading-relaxed pb-2 pr-12 pl-1 pt-1">{msg.text}</p>
+                                        )}
+                                        <div className="absolute bottom-1 right-2 flex items-center space-x-1">
+                                            <span className="text-[9px] text-gray-500 -mb-0.5">{msg.time}</span>
+                                            {msg.sender === 'me' && (
+                                                <span className="text-blue-500">
+                                                    <CheckCheck size={12} />
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Input Area */}
+                        <div className="bg-[#F0F2F5] px-4 py-2 flex items-center z-10 relative">
+                            {showEmojiPicker && (
+                                <div className="absolute bottom-16 left-4 z-50 shadow-2xl">
+                                    <EmojiPicker onEmojiClick={(emojiData) => { setInputText(prev => prev + emojiData.emoji); setShowEmojiPicker(false); }} />
+                                </div>
+                            )}
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                onChange={handleFileUpload}
+                                accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+                            />
+
+                            {isRecording ? (
+                                <div className="flex-1 flex items-center justify-between bg-white rounded-lg px-4 py-2 text-red-500 animate-pulse">
+                                    <div className="flex items-center gap-2">
+                                        <Mic size={20} className="animate-bounce" />
+                                        <span className="font-medium">{formatTime(recordingTime)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => { setIsRecording(false); if (mediaRecorderRef.current) mediaRecorderRef.current.stop(); if (timerRef.current) clearInterval(timerRef.current); }} className="text-gray-500 hover:text-gray-700 text-xs uppercase cursor-pointer">Cancelar</button>
+                                        <button onClick={stopRecording} className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors cursor-pointer">
+                                            <Send size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
-                                <Search size={20} className="cursor-pointer hover:text-gray-700" onClick={toggleSearch} />
-                            )}
+                                <>
+                                    <div className="flex space-x-3 text-gray-500 mr-2">
+                                        <Smile size={24} className={`cursor-pointer transition-colors ${showEmojiPicker ? 'text-[#00A884]' : 'hover:text-gray-700'}`} onClick={() => setShowEmojiPicker(!showEmojiPicker)} />
+                                        <Paperclip size={24} className="cursor-pointer hover:text-gray-700" onClick={() => fileInputRef.current?.click()} />
+                                    </div>
 
-                            <div className="relative">
-                                <MoreVertical size={20} className="cursor-pointer hover:text-gray-700" onClick={() => setShowMenu(!showMenu)} />
-                                {showMenu && (
-                                    <div className="absolute right-0 top-8 bg-white shadow-lg rounded-lg py-2 w-48 border border-gray-100 z-50">
-                                        <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2" onClick={() => { setMessages(prev => ({ ...prev, [selectedContact.id]: [] })); setShowMenu(false); }}>
-                                            <Trash2 size={16} /> Limpar conversa
-                                        </button>
-                                        <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                                            <Bot size={16} /> Gerar resumo IA
+                                    <div className="flex-1 relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Mensagem"
+                                            className="w-full py-2.5 px-4 rounded-lg border-none focus:outline-none text-sm placeholder-gray-500"
+                                            value={inputText}
+                                            onChange={(e) => setInputText(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                        />
+                                        {/* AI Button inside input */}
+                                        <button
+                                            onClick={handleGenerateAi}
+                                            className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full transition-colors ${aiSuggestion ? 'text-purple-600 bg-purple-100' : 'text-gray-400 hover:text-purple-500'}`}
+                                            title="Gerar resposta com IA"
+                                        >
+                                            <Bot size={18} />
                                         </button>
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Chat Background Pattern */}
-                    <div className="absolute inset-0 opacity-[0.4] pointer-events-none bg-repeat" style={{ backgroundImage: 'url("https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg")', backgroundSize: '400px' }}></div>
-
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar z-0 relative">
-                        {displayedMessages.map((msg) => (
-                            <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[75%] rounded-lg px-2 py-1 shadow-sm text-sm relative group ${msg.sender === 'me' ? 'bg-[#D9FDD3] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
-                                    {msg.mediaUrl ? (
-                                        <div className="mb-0">
-                                            {msg.mediaType === 'image' && (
-                                                <img src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} alt="Mídia" className="rounded-lg max-w-full max-h-[300px] object-cover cursor-pointer hover:opacity-95" onClick={() => window.open(msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`)} />
-                                            )}
-                                            {msg.mediaType === 'video' && (
-                                                <video controls className="rounded-lg max-w-full max-h-[300px]" src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} />
-                                            )}
-                                            {msg.mediaType === 'audio' && (
-                                                <audio controls className="w-[240px] h-10 mt-1" src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} />
-                                            )}
-                                            {msg.mediaType === 'document' && (
-                                                <div className="flex items-center gap-3 bg-black/5 p-3 rounded-lg cursor-pointer hover:bg-black/10 transition-colors" onClick={() => window.open(msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`)}>
-                                                    <div className="bg-red-100 p-2 rounded text-red-500">
-                                                        <Paperclip size={20} />
-                                                    </div>
-                                                    <div className="flex-1 overflow-hidden">
-                                                        <span className="truncate block font-medium text-gray-700">Documento</span>
-                                                        <span className="text-xs text-gray-500 uppercase">{msg.mediaUrl?.split('.').pop()}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {msg.text && (msg.text !== 'Mídia enviada' && msg.text !== 'Áudio enviado') && <p className="text-gray-800 pt-1 pb-4 px-1">{msg.text}</p>}
-                                        </div>
-                                    ) : (
-                                        <p className="text-gray-800 leading-relaxed pb-2 pr-12 pl-1 pt-1">{msg.text}</p>
-                                    )}
-                                    <div className="absolute bottom-1 right-2 flex items-center space-x-1">
-                                        <span className="text-[9px] text-gray-500 -mb-0.5">{msg.time}</span>
-                                        {msg.sender === 'me' && (
-                                            <span className="text-blue-500">
-                                                <CheckCheck size={12} />
-                                            </span>
+                                    <div className="flex space-x-3 text-gray-500 ml-2 items-center">
+                                        {inputText ? (
+                                            <button onClick={handleSendMessage} className="text-[#00A884]">
+                                                <Send size={24} />
+                                            </button>
+                                        ) : (
+                                            <button onClick={startRecording} className="cursor-pointer hover:text-red-500 transition-colors" title="Gravar áudio">
+                                                <Mic size={24} />
+                                            </button>
                                         )}
                                     </div>
-                                </div>
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef} />
+                                </>
+                            )}
+                        </div>
+                    </>
+                ) : (
+                    <div className="hidden md:flex flex-1 bg-[#F0F2F5] border-b-[6px] border-[#25D366] flex-col items-center justify-center text-center p-10">
+                        <div className="bg-white rounded-full p-8 shadow-sm mb-6">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/2044px-WhatsApp.svg.png" className="w-24 h-24 opacity-50" alt="ZapFlow" />
+                        </div>
+                        <h1 className="text-3xl font-light text-gray-700 mb-4">ZapFlow Web</h1>
+                        <p className="text-sm text-gray-500 max-w-md">
+                            Envie e receba mensagens sem precisar manter seu celular conectado. <br />
+                            Use o ZapFlow em até 4 aparelhos e 1 celular ao mesmo tempo.
+                        </p>
                     </div>
-
-                    {/* Input Area */}
-                    <div className="bg-[#F0F2F5] px-4 py-2 flex items-center z-10 relative">
-                        {showEmojiPicker && (
-                            <div className="absolute bottom-16 left-4 z-50 shadow-2xl">
-                                <EmojiPicker onEmojiClick={(emojiData) => { setInputText(prev => prev + emojiData.emoji); setShowEmojiPicker(false); }} />
-                            </div>
-                        )}
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            onChange={handleFileUpload}
-                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
-                        />
-
-                        {isRecording ? (
-                            <div className="flex-1 flex items-center justify-between bg-white rounded-lg px-4 py-2 text-red-500 animate-pulse">
-                                <div className="flex items-center gap-2">
-                                    <Mic size={20} className="animate-bounce" />
-                                    <span className="font-medium">{formatTime(recordingTime)}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => { setIsRecording(false); if (mediaRecorderRef.current) mediaRecorderRef.current.stop(); if (timerRef.current) clearInterval(timerRef.current); }} className="text-gray-500 hover:text-gray-700 text-xs uppercase cursor-pointer">Cancelar</button>
-                                    <button onClick={stopRecording} className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors cursor-pointer">
-                                        <Send size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="flex space-x-3 text-gray-500 mr-2">
-                                    <Smile size={24} className={`cursor-pointer transition-colors ${showEmojiPicker ? 'text-[#00A884]' : 'hover:text-gray-700'}`} onClick={() => setShowEmojiPicker(!showEmojiPicker)} />
-                                    <Paperclip size={24} className="cursor-pointer hover:text-gray-700" onClick={() => fileInputRef.current?.click()} />
-                                </div>
-
-                                <div className="flex-1 relative">
-                                    <input
-                                        type="text"
-                                        placeholder="Mensagem"
-                                        className="w-full py-2.5 px-4 rounded-lg border-none focus:outline-none text-sm placeholder-gray-500"
-                                        value={inputText}
-                                        onChange={(e) => setInputText(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                    />
-                                    {/* AI Button inside input */}
-                                    <button
-                                        onClick={handleGenerateAi}
-                                        className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full transition-colors ${aiSuggestion ? 'text-purple-600 bg-purple-100' : 'text-gray-400 hover:text-purple-500'}`}
-                                        title="Gerar resposta com IA"
-                                    >
-                                        <Bot size={18} />
-                                    </button>
-                                </div>
-
-                                <div className="flex space-x-3 text-gray-500 ml-2 items-center">
-                                    {inputText ? (
-                                        <button onClick={handleSendMessage} className="text-[#00A884]">
-                                            <Send size={24} />
-                                        </button>
-                                    ) : (
-                                        <button onClick={startRecording} className="cursor-pointer hover:text-red-500 transition-colors" title="Gravar áudio">
-                                            <Mic size={24} />
-                                        </button>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <div className="flex-1 bg-[#F0F2F5] border-b-[6px] border-[#25D366] flex flex-col items-center justify-center text-center p-10">
-                    <div className="bg-white rounded-full p-8 shadow-sm mb-6">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/2044px-WhatsApp.svg.png" className="w-24 h-24 opacity-50" alt="ZapFlow" />
-                    </div>
-                    <h1 className="text-3xl font-light text-gray-700 mb-4">ZapFlow Web</h1>
-                    <p className="text-sm text-gray-500 max-w-md">
-                        Envie e receba mensagens sem precisar manter seu celular conectado. <br />
-                        Use o ZapFlow em até 4 aparelhos e 1 celular ao mesmo tempo.
-                    </p>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };

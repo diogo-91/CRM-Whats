@@ -1,20 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MessageSquare,
-  LayoutDashboard,
   BarChart2,
   Calendar,
-  Send,
   Users,
-  Image as ImageIcon,
-  Settings,
-  PlusCircle,
-  Menu,
-  HelpCircle,
-  Keyboard,
-  Moon,
-  ExternalLink,
-  Zap,
   LogOut,
   X
 } from 'lucide-react';
@@ -85,28 +74,28 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, isOpen, onC
             icon={<BarChart2 size={20} />}
             label="Relatórios"
             active={activeView === 'reports'}
-            onClick={() => onViewChange('reports')}
+            onClick={() => { onViewChange('reports'); onClose(); }}
           />
 
           <NavItem
             icon={<MessageSquare size={20} />}
             label="Conversas"
             active={activeView === 'chat'}
-            onClick={() => onViewChange('chat')}
+            onClick={() => { onViewChange('chat'); onClose(); }}
           />
 
           <NavItem
             icon={<Calendar size={20} />}
             label="Agendamentos"
             active={activeView === 'scheduling'}
-            onClick={() => onViewChange('scheduling')}
+            onClick={() => { onViewChange('scheduling'); onClose(); }}
           />
 
           <NavItem
             icon={<Users size={20} />}
             label="Contatos"
             active={activeView === 'contacts'}
-            onClick={() => onViewChange('contacts')}
+            onClick={() => { onViewChange('contacts'); onClose(); }}
           />
         </nav>
 
@@ -125,27 +114,28 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, isOpen, onC
           </button>
         </div>
       </div>
-      );
+    </>
+  );
 };
 
-      const NavItem = ({icon, label, active = false, onClick}: {
-        icon: React.ReactNode;
-      label: string;
-      active?: boolean;
+const NavItem = ({ icon, label, active = false, onClick }: {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
   onClick?: () => void;
 }) => {
   return (
-      <div
-        onClick={onClick}
-        className={`cursor-pointer flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${active
-          ? 'bg-[#00A884] text-white shadow-lg shadow-emerald-900/50'
-          : 'text-gray-400 hover:text-white hover:bg-gray-800'
-          }`}
-      >
-        {icon}
-        <span className="font-medium">{label}</span>
-      </div>
-      );
+    <div
+      onClick={onClick}
+      className={`cursor-pointer flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${active
+        ? 'bg-[#00A884] text-white shadow-lg shadow-emerald-900/50'
+        : 'text-gray-400 hover:text-white hover:bg-gray-800'
+        }`}
+    >
+      {icon}
+      <span className="font-medium">{label}</span>
+    </div>
+  );
 };
 
-      export default Sidebar;
+export default Sidebar;
