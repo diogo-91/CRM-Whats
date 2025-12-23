@@ -137,7 +137,7 @@ const SchedulingInterface: React.FC = () => {
 
         // Empty cells for previous month
         for (let i = 0; i < emptyDays; i++) {
-            days.push(<div key={`empty-${i}`} className="h-24 bg-gray-50/50 border border-gray-100"></div>);
+            days.push(<div key={`empty-${i}`} className="h-24 bg-gray-100 border border-gray-200"></div>);
         }
 
         // Days of current month
