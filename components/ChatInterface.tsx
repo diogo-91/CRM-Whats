@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { INITIAL_DATA } from '../constants';
 import { Contact } from '../types';
-import { Search, MoreVertical, Paperclip, Smile, Mic, Send, Check, CheckCheck, Bot } from 'lucide-react';
+import { Search, MoreVertical, Paperclip, Smile, Mic, Send, Check, CheckCheck, Bot, X, Trash2, StopCircle } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
 import { generateResponseSuggestion } from '../services/geminiService';
 
 // Flatten contacts for the list
@@ -29,7 +30,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
     const [searchTerm, setSearchTerm] = useState('');
     const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
     const [isTyping, setIsTyping] = useState(false);
+
+    // New Features State
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [messageSearchTerm, setMessageSearchTerm] = useState('');
+    const [showMenu, setShowMenu] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingTime, setRecordingTime] = useState(0);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     const filteredContacts = contacts.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -207,6 +221,117 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
         setIsTyping(false);
     };
 
+    // --- New Feature Handlers ---
+
+    const toggleSearch = () => {
+        setIsSearchOpen(!isSearchOpen);
+        setMessageSearchTerm('');
+    };
+
+    const currentMessages = messages[selectedContact?.id || ''] || [];
+    const displayedMessages = isSearchOpen && messageSearchTerm
+        ? currentMessages.filter(msg => msg.text && msg.text.toLowerCase().includes(messageSearchTerm.toLowerCase()))
+        : currentMessages;
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !selectedContact) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const uploadRes = await fetch(`${API_URL}/api/upload`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await uploadRes.json();
+            if (data.url) {
+                const type = file.type.startsWith('image/') ? 'image' :
+                    file.type.startsWith('video/') ? 'video' :
+                        file.type.startsWith('audio/') ? 'audio' : 'document';
+
+                const payload = {
+                    contactId: selectedContact.id,
+                    content: '',
+                    mediaUrl: data.url,
+                    mediaType: type
+                };
+
+                await fetch(`${API_URL}/api/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+            }
+        } catch (error) {
+            console.error('Error uploading file:', error);
+        }
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) audioChunksRef.current.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const audioFile = new File([audioBlob], 'voice-message.webm', { type: 'audio/webm' });
+
+                const formData = new FormData();
+                formData.append('file', audioFile);
+
+                try {
+                    const uploadRes = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: formData });
+                    const data = await uploadRes.json();
+                    if (data.url) {
+                        await fetch(`${API_URL}/api/messages`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ contactId: selectedContact?.id, mediaUrl: data.url, mediaType: 'audio' })
+                        });
+                    }
+                } catch (err) { console.error(err); }
+
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+            setRecordingTime(0);
+            timerRef.current = setInterval(() => {
+                setRecordingTime(prev => prev + 1);
+            }, 1000);
+
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            alert('Erro ao acessar microfone. Verifique as permissões.');
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+    };
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
     return (
         <div className="flex h-full bg-white border-t border-gray-200">
             {/* Sidebar List */}
@@ -258,7 +383,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
             {selectedContact ? (
                 <div className="flex-1 flex flex-col bg-[#efeae2] relative">
                     {/* Chat Header */}
-                    <div className="h-16 bg-[#F0F2F5] px-4 flex items-center justify-between border-b border-gray-200 z-10">
+                    <div className="h-16 bg-[#F0F2F5] px-4 flex items-center justify-between border-b border-gray-200 z-10 relative">
                         <div className="flex items-center cursor-pointer">
                             <img src={selectedContact.avatarUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
                             <div className="ml-3">
@@ -268,9 +393,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4 text-gray-500">
-                            <Search size={20} className="cursor-pointer" />
-                            <MoreVertical size={20} className="cursor-pointer" />
+                        <div className="flex items-center space-x-4 text-gray-500 relative">
+                            {isSearchOpen ? (
+                                <div className="flex items-center bg-white rounded-lg px-2 py-1 shadow-sm border border-gray-200 animate-in slide-in-from-right-5">
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        placeholder="Buscar..."
+                                        className="w-40 text-sm border-none focus:outline-none"
+                                        value={messageSearchTerm}
+                                        onChange={(e) => setMessageSearchTerm(e.target.value)}
+                                    />
+                                    <X size={16} className="cursor-pointer ml-1 hover:text-red-500" onClick={toggleSearch} />
+                                </div>
+                            ) : (
+                                <Search size={20} className="cursor-pointer hover:text-gray-700" onClick={toggleSearch} />
+                            )}
+
+                            <div className="relative">
+                                <MoreVertical size={20} className="cursor-pointer hover:text-gray-700" onClick={() => setShowMenu(!showMenu)} />
+                                {showMenu && (
+                                    <div className="absolute right-0 top-8 bg-white shadow-lg rounded-lg py-2 w-48 border border-gray-100 z-50">
+                                        <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2" onClick={() => { setMessages(prev => ({ ...prev, [selectedContact.id]: [] })); setShowMenu(false); }}>
+                                            <Trash2 size={16} /> Limpar conversa
+                                        </button>
+                                        <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                            <Bot size={16} /> Gerar resumo IA
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -279,7 +431,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
 
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar z-0 relative">
-                        {(messages[selectedContact.id] || []).map((msg) => (
+                        {displayedMessages.map((msg) => (
                             <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[60%] rounded-lg px-3 py-1.5 shadow-sm text-sm relative group ${msg.sender === 'me' ? 'bg-[#D9FDD3] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
                                     <p className="text-gray-800 leading-relaxed pb-3">{msg.text}</p>
@@ -298,40 +450,72 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                     </div>
 
                     {/* Input Area */}
-                    <div className="bg-[#F0F2F5] px-4 py-2 flex items-center z-10">
-                        <div className="flex space-x-3 text-gray-500 mr-2">
-                            <Smile size={24} className="cursor-pointer hover:text-gray-700" />
-                            <Paperclip size={24} className="cursor-pointer hover:text-gray-700" />
-                        </div>
+                    <div className="bg-[#F0F2F5] px-4 py-2 flex items-center z-10 relative">
+                        {showEmojiPicker && (
+                            <div className="absolute bottom-16 left-4 z-50 shadow-2xl">
+                                <EmojiPicker onEmojiClick={(emojiData) => { setInputText(prev => prev + emojiData.emoji); setShowEmojiPicker(false); }} />
+                            </div>
+                        )}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleFileUpload}
+                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+                        />
 
-                        <div className="flex-1 relative">
-                            <input
-                                type="text"
-                                placeholder="Mensagem"
-                                className="w-full py-2.5 px-4 rounded-lg border-none focus:outline-none text-sm placeholder-gray-500"
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            />
-                            {/* AI Button inside input */}
-                            <button
-                                onClick={handleGenerateAi}
-                                className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full transition-colors ${aiSuggestion ? 'text-purple-600 bg-purple-100' : 'text-gray-400 hover:text-purple-500'}`}
-                                title="Gerar resposta com IA"
-                            >
-                                <Bot size={18} />
-                            </button>
-                        </div>
+                        {isRecording ? (
+                            <div className="flex-1 flex items-center justify-between bg-white rounded-lg px-4 py-2 text-red-500 animate-pulse">
+                                <div className="flex items-center gap-2">
+                                    <Mic size={20} className="animate-bounce" />
+                                    <span className="font-medium">{formatTime(recordingTime)}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => { setIsRecording(false); if (mediaRecorderRef.current) mediaRecorderRef.current.stop(); if (timerRef.current) clearInterval(timerRef.current); }} className="text-gray-500 hover:text-gray-700 text-xs uppercase cursor-pointer">Cancelar</button>
+                                    <button onClick={stopRecording} className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors cursor-pointer">
+                                        <Send size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex space-x-3 text-gray-500 mr-2">
+                                    <Smile size={24} className={`cursor-pointer transition-colors ${showEmojiPicker ? 'text-[#00A884]' : 'hover:text-gray-700'}`} onClick={() => setShowEmojiPicker(!showEmojiPicker)} />
+                                    <Paperclip size={24} className="cursor-pointer hover:text-gray-700" onClick={() => fileInputRef.current?.click()} />
+                                </div>
 
-                        <div className="flex space-x-3 text-gray-500 ml-2 items-center">
-                            {inputText ? (
-                                <button onClick={handleSendMessage} className="text-[#00A884]">
-                                    <Send size={24} />
-                                </button>
-                            ) : (
-                                <Mic size={24} className="cursor-pointer hover:text-gray-700" />
-                            )}
-                        </div>
+                                <div className="flex-1 relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Mensagem"
+                                        className="w-full py-2.5 px-4 rounded-lg border-none focus:outline-none text-sm placeholder-gray-500"
+                                        value={inputText}
+                                        onChange={(e) => setInputText(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                    />
+                                    {/* AI Button inside input */}
+                                    <button
+                                        onClick={handleGenerateAi}
+                                        className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full transition-colors ${aiSuggestion ? 'text-purple-600 bg-purple-100' : 'text-gray-400 hover:text-purple-500'}`}
+                                        title="Gerar resposta com IA"
+                                    >
+                                        <Bot size={18} />
+                                    </button>
+                                </div>
+
+                                <div className="flex space-x-3 text-gray-500 ml-2 items-center">
+                                    {inputText ? (
+                                        <button onClick={handleSendMessage} className="text-[#00A884]">
+                                            <Send size={24} />
+                                        </button>
+                                    ) : (
+                                        <button onClick={startRecording} className="cursor-pointer hover:text-red-500 transition-colors" title="Gravar áudio">
+                                            <Mic size={24} />
+                                        </button>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             ) : (

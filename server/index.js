@@ -12,9 +12,29 @@ const prisma = new PrismaClient();
 
 import path from 'path';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Configuração do Multer para Uploads
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // Configuração do CORS
 app.use(cors());
@@ -22,6 +42,8 @@ app.use(express.json());
 
 // Servir arquivos estáticos do Frontend (Vite build)
 app.use(express.static(path.join(__dirname, '../dist')));
+// Servir arquivos de upload
+app.use('/uploads', express.static(uploadDir));
 
 // Configuração do Socket.io
 const io = new Server(server, {
@@ -218,6 +240,16 @@ app.post('/api/contacts', authenticateToken, async (req, res) => {
   }
 });
 
+// Endpoint de Upload
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  }
+  // Retorna URL relativa
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.json({ url: fileUrl, filename: req.file.filename, mimetype: req.file.mimetype });
+});
+
 import { evolutionService } from './services/evolutionService.js';
 
 // ... existing code ...
@@ -240,22 +272,30 @@ app.get('/api/contacts/:id/messages', authenticateToken, async (req, res) => {
 
 // Enviar Mensagem
 app.post('/api/messages', authenticateToken, async (req, res) => {
-  const { contactId, content } = req.body;
+  const { contactId, content, mediaUrl, mediaType } = req.body;
 
   try {
     const contact = await prisma.contact.findUnique({ where: { id: contactId } });
     if (!contact) return res.status(404).json({ error: 'Contato não encontrado' });
 
     // 1. Enviar via Evolution API
-    // Assumindo que contact.phone é o número correto
-    await evolutionService.sendMessage(contact.phone, content);
+    if (mediaUrl) {
+      // Construct full URL if it's a relative local upload
+      const fullOne = mediaUrl.startsWith('http') ? mediaUrl : `${req.protocol}://${req.get('host')}${mediaUrl}`;
+      await evolutionService.sendMedia(contact.phone, fullOne, mediaType, content);
+    } else {
+      await evolutionService.sendMessage(contact.phone, content);
+    }
 
     // 2. Salvar no Banco
     const message = await prisma.message.create({
       data: {
-        content,
+        content: content || (mediaType === 'audio' ? 'Áudio enviado' : 'Mídia enviada'),
         fromMe: true,
         contactId: contact.id
+        // TODO: add mediaUrl/mediaType columns to Message model if needed. 
+        // For now storing text representation or relying on content.
+        // Ideally we should update schema to store mediaUrl.
       }
     });
 

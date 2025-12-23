@@ -41,5 +41,60 @@ export const evolutionService = {
             console.error('Error sending WhatsApp message:', error.response?.data || error.message);
             throw error;
         }
+    },
+
+    async sendMedia(number, mediaUrl, mediaType, caption) {
+        const { url: API_URL, token: API_TOKEN, instance: INSTANCE } = getConfig();
+
+        if (!API_URL || !API_TOKEN) {
+            console.warn('Evolution API not configured');
+            return;
+        }
+
+        try {
+            const cleanNumber = number.replace(/\D/g, '');
+            const formattedNumber = `${cleanNumber}@s.whatsapp.net`;
+
+            // Determine endpoint based on type (image, video, audio, document)
+            // Evolution v2 usually has specific endpoints or a generic sendMedia
+            // Using /message/sendMedia/INSTANCE for generic or specific ones
+
+            // Simple mapping for Evolution API v2 (check specific docs if available)
+            // Assuming sendMedia works for images/videos/docs
+            const apiUrl = `${API_URL}/message/sendMedia/${INSTANCE}`;
+
+            const payload = {
+                number: formattedNumber,
+                media: mediaUrl, // URL of the media
+                mediatype: mediaType, // image, video, document
+                caption: caption || '',
+                fileName: 'file' // Optional
+            };
+
+            // Audio handling might differ (sendWhatsAppAudio)
+            if (mediaType === 'audio') {
+                // Evolution often has sendWhatsAppAudio
+                const audioUrl = `${API_URL}/message/sendWhatsAppAudio/${INSTANCE}`;
+                await axios.post(audioUrl, {
+                    number: formattedNumber,
+                    audio: mediaUrl
+                }, {
+                    headers: { 'apikey': API_TOKEN }
+                });
+                return;
+            }
+
+            const headers = {
+                'apikey': API_TOKEN,
+                'Content-Type': 'application/json'
+            };
+
+            const response = await axios.post(apiUrl, payload, { headers });
+            return response.data;
+
+        } catch (error) {
+            console.error('Error sending media:', error.response?.data || error.message);
+            throw error;
+        }
     }
 };
