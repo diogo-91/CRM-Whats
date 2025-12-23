@@ -57,6 +57,8 @@ const SchedulingInterface: React.FC = () => {
     const [showModal, setShowModal] = useState(false);
     const { token } = useAuth();
     const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin;
+    const [isSynced, setIsSynced] = useState(false);
+    const [showSyncSuccess, setShowSyncSuccess] = useState(false);
 
     // Fetch Google Events
     useEffect(() => {
@@ -68,13 +70,10 @@ const SchedulingInterface: React.FC = () => {
                 if (res.ok) {
                     const gEvents = await res.json();
                     console.log('Google Events:', gEvents);
-                    // Merge or replace appointments. For demo, we assume sync means viewing.
-                    // Map/Merge logic can be complex. We'll simply append or display.
-                    // Converting Google Event to Appointment type
                     const mappedEvents: Appointment[] = gEvents.map((ev: any) => ({
                         id: ev.id,
                         title: ev.title || 'Sem título',
-                        contactName: ev.description || 'Google Calendar', // Use description as contact or detail
+                        contactName: ev.description || 'Google Calendar',
                         date: new Date(ev.start),
                         startTime: new Date(ev.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         endTime: new Date(ev.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -82,8 +81,10 @@ const SchedulingInterface: React.FC = () => {
                         status: 'confirmed',
                         notes: ev.description
                     }));
-                    // Combine with initial or replace
                     setAppointments([...INITIAL_APPOINTMENTS, ...mappedEvents]);
+                    setIsSynced(true);
+                    setShowSyncSuccess(true);
+                    setTimeout(() => setShowSyncSuccess(false), 3000);
                 }
             } catch (err) {
                 console.error(err);
@@ -93,7 +94,6 @@ const SchedulingInterface: React.FC = () => {
     }, [token, API_URL]);
 
     const handleGoogleConnect = () => {
-        // Redirect to backend auth with token
         window.location.href = `${API_URL}/auth/google?token=${token}`;
     };
 
@@ -141,35 +141,40 @@ const SchedulingInterface: React.FC = () => {
                 <div
                     key={day}
                     onClick={() => setSelectedDate(dateToCheck)}
-                    className={`h-28 border-2 p-3 cursor-pointer transition-all duration-200 relative group rounded-lg
-            ${isSelected ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-400 shadow-lg scale-105' : 'hover:bg-gradient-to-br hover:from-gray-50 hover:to-blue-50 bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'}
+                    className={`h-24 border cursor-pointer transition-all relative group
+            ${isSelected
+                            ? 'bg-blue-50 border-blue-300 shadow-md'
+                            : isToday
+                                ? 'bg-gray-50 border-gray-300'
+                                : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'}
           `}
                 >
-                    <div className="flex justify-between items-start">
-                        <span className={`
-                text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-all
-                ${isToday ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg scale-110' : isSelected ? 'bg-emerald-100 text-emerald-700' : 'text-gray-700 group-hover:bg-blue-100 group-hover:text-blue-700'}
+                    <div className="p-2">
+                        <div className="flex justify-between items-start mb-1">
+                            <span className={`text-sm font-semibold
+                ${isToday ? 'w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center' : isSelected ? 'text-blue-600' : 'text-gray-700'}
             `}>
-                            {day}
-                        </span>
-                        {dayAppointments.length > 0 && (
-                            <span className="text-[10px] bg-gradient-to-r from-blue-500 to-purple-500 text-white px-2 py-0.5 rounded-full font-bold shadow-md">
-                                {dayAppointments.length}
+                                {day}
                             </span>
-                        )}
-                    </div>
+                            {dayAppointments.length > 0 && (
+                                <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full font-semibold">
+                                    {dayAppointments.length}
+                                </span>
+                            )}
+                        </div>
 
-                    <div className="mt-2 space-y-1">
-                        {dayAppointments.slice(0, 2).map((apt, idx) => (
-                            <div key={idx} className="text-[10px] truncate px-2 py-1 rounded-md bg-gradient-to-r from-blue-50 to-purple-50 text-gray-700 border-l-3 border-l-blue-500 font-medium shadow-sm hover:shadow-md transition-shadow">
-                                <span className="font-bold text-blue-600">{apt.startTime}</span> {apt.title}
-                            </div>
-                        ))}
-                        {dayAppointments.length > 2 && (
-                            <div className="text-[10px] text-purple-600 pl-2 font-semibold">
-                                + {dayAppointments.length - 2} mais
-                            </div>
-                        )}
+                        <div className="space-y-1">
+                            {dayAppointments.slice(0, 2).map((apt, idx) => (
+                                <div key={idx} className="text-[10px] truncate px-1.5 py-0.5 rounded bg-blue-50 text-blue-900 border-l-2 border-blue-600 font-medium">
+                                    {apt.startTime}
+                                </div>
+                            ))}
+                            {dayAppointments.length > 2 && (
+                                <div className="text-[10px] text-gray-500 pl-1.5 font-medium">
+                                    +{dayAppointments.length - 2}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             );
@@ -183,57 +188,75 @@ const SchedulingInterface: React.FC = () => {
             {/* Main Calendar Area */}
             <div className="flex-1 flex flex-col p-6 overflow-hidden">
 
+                {/* Sync Success Toast */}
+                {showSyncSuccess && (
+                    <div className="fixed top-6 right-6 bg-white border-l-4 border-green-500 rounded-lg shadow-2xl p-4 flex items-center gap-3 animate-in slide-in-from-top z-50">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <CheckCircle2 size={20} className="text-green-600" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-gray-900">Sincronizado com sucesso!</p>
+                            <p className="text-sm text-gray-600">Eventos do Google Calendar carregados</p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Header */}
-                <div className="flex justify-between items-center mb-6 bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-2xl shadow-lg border border-emerald-100">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center bg-white rounded-xl p-1.5 shadow-md">
-                            <button onClick={handlePrevMonth} className="p-2 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110">
-                                <ChevronLeft size={20} className="text-emerald-600" />
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3">
+                            <button onClick={handlePrevMonth} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+                                <ChevronLeft size={20} className="text-gray-600" />
                             </button>
-                            <button onClick={handleNextMonth} className="p-2 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110">
-                                <ChevronRight size={20} className="text-emerald-600" />
+                            <button onClick={handleNextMonth} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+                                <ChevronRight size={20} className="text-gray-600" />
                             </button>
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                                <CalendarIcon size={28} className="text-emerald-600" />
+                            <h1 className="text-3xl font-bold text-gray-900">
                                 {monthNames[currentDate.getMonth()]}
-                            </h2>
-                            <p className="text-sm text-gray-500 font-medium">{currentDate.getFullYear()}</p>
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-0.5">{currentDate.getFullYear()}</p>
                         </div>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex items-center gap-3">
+                        {isSynced && (
+                            <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-sm font-medium text-green-700">Sincronizado</span>
+                            </div>
+                        )}
                         <button
                             onClick={handleGoogleConnect}
-                            className="bg-white border-2 border-blue-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300 px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-md transition-all hover:scale-105 hover:shadow-lg"
+                            className="px-4 py-2.5 bg-white border border-gray-300 hover:border-gray-400 rounded-lg flex items-center gap-2 font-medium text-gray-700 transition-all hover:shadow-sm"
                         >
                             <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" alt="Google" className="w-5 h-5" />
-                            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Sincronizar Google</span>
+                            Google Calendar
                         </button>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 font-medium transition-colors shadow-sm"
                         >
-                            <Plus size={20} />
+                            <Plus size={18} />
                             Novo Agendamento
                         </button>
                     </div>
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 flex-1 flex flex-col overflow-hidden">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
                     {/* Week Days Header */}
-                    <div className="grid grid-cols-7 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
+                    <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
                         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                            <div key={day} className="py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                            <div key={day} className="py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide">
                                 {day}
                             </div>
                         ))}
                     </div>
 
                     {/* Days Grid */}
-                    <div className="grid grid-cols-7 flex-1 overflow-y-auto custom-scrollbar p-2 gap-2 bg-gradient-to-br from-gray-50 to-blue-50">
+                    <div className="grid grid-cols-7 flex-1 overflow-y-auto custom-scrollbar">
                         {renderCalendarDays()}
                     </div>
                 </div>
