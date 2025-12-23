@@ -9,9 +9,7 @@ import {
     ResponsiveContainer,
     PieChart,
     Pie,
-    Cell,
-    AreaChart,
-    Area
+    Cell
 } from 'recharts';
 import {
     TrendingUp,
@@ -32,7 +30,7 @@ interface DashboardStats {
     avgResponseTime: string;
 }
 
-interface ContactsByStage {
+interface CalendarStat {
     name: string;
     value: number;
     color: string;
@@ -49,7 +47,7 @@ const ReportsInterface: React.FC = () => {
         avgResponseTime: '0s'
     });
 
-    const [contactsByStage, setContactsByStage] = useState<ContactsByStage[]>([]);
+    const [calendarStats, setCalendarStats] = useState<CalendarStat[]>([]);
     const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -59,56 +57,75 @@ const ReportsInterface: React.FC = () => {
         try {
             setIsLoading(true);
 
-            // Fetch contacts with stages
-            const contactsRes = await fetch(`${API_URL}/api/kanban`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            let totalMessages = 0;
+            let totalContacts = 0;
+            let totalAppointments = 0;
+
+            // Fetch total messages count
+            try {
+                const messagesRes = await fetch(`${API_URL}/api/messages/count`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (messagesRes.ok) {
+                    const { count } = await messagesRes.json();
+                    totalMessages = count;
+                }
+            } catch (err) {
+                console.error('Error fetching messages count:', err);
+            }
+
+            // Fetch total contacts count
+            try {
+                const contactsRes = await fetch(`${API_URL}/api/kanban`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (contactsRes.ok) {
+                    const kanbanData = await contactsRes.json();
+                    totalContacts = kanbanData.reduce((sum: number, col: any) => sum + (col.items?.length || 0), 0);
+                }
+            } catch (err) {
+                console.error('Error fetching contacts:', err);
+            }
+
+            // Fetch Google Calendar events
+            try {
+                const calendarRes = await fetch(`${API_URL}/api/calendar`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (calendarRes.ok) {
+                    const events = await calendarRes.json();
+                    totalAppointments = events.length;
+
+                    // Group events by status/type for the chart
+                    const today = new Date();
+                    const upcoming = events.filter((e: any) => new Date(e.start) > today).length;
+                    const past = events.filter((e: any) => new Date(e.start) <= today).length;
+                    const thisWeek = events.filter((e: any) => {
+                        const eventDate = new Date(e.start);
+                        const weekFromNow = new Date();
+                        weekFromNow.setDate(weekFromNow.getDate() + 7);
+                        return eventDate > today && eventDate <= weekFromNow;
+                    }).length;
+
+                    setCalendarStats([
+                        { name: 'Próximos 7 dias', value: thisWeek, color: '#059669' },
+                        { name: 'Futuros', value: upcoming - thisWeek, color: '#0d9488' },
+                        { name: 'Realizados', value: past, color: '#6B7280' }
+                    ]);
+                }
+            } catch (err) {
+                console.error('Error fetching calendar events:', err);
+                setCalendarStats([]);
+            }
+
+            setStats({
+                totalMessages,
+                totalContacts,
+                totalAppointments,
+                avgResponseTime: '< 1m'
             });
 
-            if (contactsRes.ok) {
-                const kanbanData = await contactsRes.json();
-
-                // Count contacts by stage
-                const stageColors: Record<string, string> = {
-                    'Novos Leads': '#059669',
-                    'Em Negociação': '#0d9488',
-                    'Aguardando': '#eab308',
-                    'Fechados': '#0f766e'
-                };
-
-                const stageData = kanbanData.map((column: any) => ({
-                    name: column.title,
-                    value: column.items?.length || 0,
-                    color: stageColors[column.title] || '#6B7280'
-                }));
-
-                setContactsByStage(stageData);
-
-                // Calculate total contacts
-                const totalContacts = kanbanData.reduce((sum: number, col: any) => sum + (col.items?.length || 0), 0);
-
-                // Fetch total messages count
-                let totalMessages = 0;
-                try {
-                    const messagesRes = await fetch(`${API_URL}/api/messages/count`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (messagesRes.ok) {
-                        const { count } = await messagesRes.json();
-                        totalMessages = count;
-                    }
-                } catch (err) {
-                    console.error('Error fetching messages count:', err);
-                }
-
-                setStats({
-                    totalMessages,
-                    totalContacts,
-                    totalAppointments: 0, // TODO: fetch from appointments API
-                    avgResponseTime: '< 1m'
-                });
-
-                setLastUpdate(new Date());
-            }
+            setLastUpdate(new Date());
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {
@@ -127,7 +144,7 @@ const ReportsInterface: React.FC = () => {
         return () => clearInterval(interval);
     }, [token]);
 
-    const totalLeads = contactsByStage.reduce((sum, item) => sum + item.value, 0);
+    const totalAppointments = calendarStats.reduce((sum, item) => sum + item.value, 0);
 
     return (
         <div className="flex-1 flex flex-col h-full bg-[#F0F2F5] overflow-y-auto custom-scrollbar p-6">
@@ -192,49 +209,63 @@ const ReportsInterface: React.FC = () => {
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
-                {/* Pie Chart - Contacts by Stage */}
+                {/* Pie Chart - Calendar Appointments */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-                    <h3 className="font-bold text-gray-700 mb-2">Distribuição de Contatos</h3>
-                    <p className="text-xs text-gray-400 mb-6">Por estágio do funil</p>
+                    <h3 className="font-bold text-gray-700 mb-2">Agendamentos Google Calendar</h3>
+                    <p className="text-xs text-gray-400 mb-6">Distribuição por período</p>
                     <div className="flex-1 min-h-[250px] relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={contactsByStage}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={70}
-                                    outerRadius={100}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {contactsByStage.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        {/* Center Text */}
-                        <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
-                            <span className="text-3xl font-bold text-gray-800">{totalLeads}</span>
-                            <span className="text-xs text-gray-500">Total</span>
-                        </div>
-                    </div>
-                    <div className="mt-6 space-y-3">
-                        {contactsByStage.map((item) => (
-                            <div key={item.name} className="flex justify-between items-center text-sm">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                                    <span className="text-gray-600">{item.name}</span>
+                        {totalAppointments > 0 ? (
+                            <>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={calendarStats}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={70}
+                                            outerRadius={100}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {calendarStats.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                {/* Center Text */}
+                                <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
+                                    <span className="text-3xl font-bold text-gray-800">{totalAppointments}</span>
+                                    <span className="text-xs text-gray-500">Total</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-gray-800 font-semibold">{item.value}</span>
-                                    <span className="text-gray-400 text-xs">({totalLeads > 0 ? Math.round((item.value / totalLeads) * 100) : 0}%)</span>
+                            </>
+                        ) : (
+                            <div className="flex items-center justify-center h-full">
+                                <div className="text-center text-gray-400">
+                                    <Calendar size={48} className="mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">Nenhum agendamento</p>
+                                    <p className="text-xs">Conecte seu Google Calendar</p>
                                 </div>
                             </div>
-                        ))}
+                        )}
                     </div>
+                    {totalAppointments > 0 && (
+                        <div className="mt-6 space-y-3">
+                            {calendarStats.map((item) => (
+                                <div key={item.name} className="flex justify-between items-center text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                                        <span className="text-gray-600">{item.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-gray-800 font-semibold">{item.value}</span>
+                                        <span className="text-gray-400 text-xs">({totalAppointments > 0 ? Math.round((item.value / totalAppointments) * 100) : 0}%)</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Activity Summary */}
