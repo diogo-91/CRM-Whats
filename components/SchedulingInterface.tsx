@@ -151,33 +151,33 @@ const SchedulingInterface: React.FC = () => {
                 <div
                     key={day}
                     onClick={() => setSelectedDate(dateToCheck)}
-                    className={`h-24 border border-gray-100 p-2 cursor-pointer transition-colors relative group
-            ${isSelected ? 'bg-emerald-50 border-emerald-200' : 'hover:bg-gray-50 bg-white'}
+                    className={`min-h-[60px] md:min-h-[96px] border border-gray-100 p-1 md:p-2 cursor-pointer transition-colors relative group bg-white
+            ${isSelected ? 'bg-emerald-50 border-emerald-200' : 'hover:bg-gray-50'}
           `}
                 >
                     <div className="flex justify-between items-start">
                         <span className={`
-                text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full
+                text-[10px] md:text-sm font-medium w-5 h-5 md:w-7 md:h-7 flex items-center justify-center rounded-full
                 ${isToday ? 'bg-[#00A884] text-white' : isSelected ? 'text-emerald-700' : 'text-gray-700'}
             `}>
                             {day}
                         </span>
                         {dayAppointments.length > 0 && (
-                            <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded-full font-medium">
+                            <span className="text-[9px] md:text-[10px] bg-blue-100 text-blue-700 px-1 md:px-1.5 rounded-full font-medium">
                                 {dayAppointments.length}
                             </span>
                         )}
                     </div>
 
-                    <div className="mt-2 space-y-1">
+                    <div className="mt-1 md:mt-2 space-y-0.5 md:space-y-1">
                         {dayAppointments.slice(0, 2).map((apt, idx) => (
-                            <div key={idx} className="text-[10px] truncate px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border-l-2 border-l-blue-400">
-                                {apt.startTime} {apt.title}
+                            <div key={idx} className="block truncate px-1 py-0.5 rounded bg-gray-100 text-gray-600 border-l-2 border-l-blue-400 text-[8px] md:text-[10px]">
+                                <span className="hidden md:inline">{apt.startTime}</span> <span className="md:hidden">•</span> {apt.title}
                             </div>
                         ))}
                         {dayAppointments.length > 2 && (
-                            <div className="text-[10px] text-gray-400 pl-1">
-                                + {dayAppointments.length - 2} mais
+                            <div className="text-[9px] md:text-[10px] text-gray-400 pl-1">
+                                + {dayAppointments.length - 2}
                             </div>
                         )}
                     </div>
@@ -188,14 +188,14 @@ const SchedulingInterface: React.FC = () => {
     };
 
     return (
-        <div className="flex-1 flex h-full bg-[#DFE3E5] overflow-hidden">
+        <div className="flex-1 flex flex-col md:flex-row h-full bg-[#DFE3E5] overflow-hidden">
 
             {/* Main Calendar Area */}
-            <div className="flex-1 flex flex-col p-6 overflow-hidden">
+            <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden order-1 md:order-1">
 
                 {/* Header */}
-                <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 bg-white p-4 rounded-xl shadow-sm gap-4">
+                    <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto justify-between md:justify-start">
                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                             <button onClick={handlePrevMonth} className="p-1 hover:bg-white rounded-md transition-shadow">
                                 <ChevronLeft size={20} className="text-gray-600" />
@@ -205,7 +205,7 @@ const SchedulingInterface: React.FC = () => {
                             </button>
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-800">
+                            <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
                                 {monthNames[currentDate.getMonth()]} <span className="text-gray-400 font-normal">{currentDate.getFullYear()}</span>
                             </h2>
                             {syncStatus !== 'idle' && (
@@ -219,13 +219,13 @@ const SchedulingInterface: React.FC = () => {
                                     {syncStatus === 'success' && lastSyncTime && (
                                         <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
                                             <CheckCircle2 size={12} />
-                                            Sincronizado {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     )}
                                     {syncStatus === 'error' && (
                                         <span className="text-xs text-red-600 font-medium flex items-center gap-1">
                                             <XCircle size={12} />
-                                            Erro na sincronização
+                                            Erro
                                         </span>
                                     )}
                                 </div>
@@ -233,20 +233,20 @@ const SchedulingInterface: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full md:w-auto">
                         <button
                             onClick={handleGoogleConnect}
-                            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors text-sm"
+                            className="flex-1 md:flex-none bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-lg flex items-center justify-center gap-2 font-medium shadow-sm transition-colors text-xs md:text-sm"
                         >
-                            <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" alt="Google" className="w-5 h-5" />
-                            Sincronizar Google
+                            <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" alt="Google" className="w-4 h-4 md:w-5 md:h-5" />
+                            <span className="hidden md:inline">Sincronizar</span> Google
                         </button>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="bg-[#00A884] hover:bg-[#008f6f] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors"
+                            className="flex-1 md:flex-none bg-[#00A884] hover:bg-[#008f6f] text-white px-3 py-2 rounded-lg flex items-center justify-center gap-2 font-medium shadow-sm transition-colors text-xs md:text-sm"
                         >
-                            <Plus size={18} />
-                            Novo Agendamento
+                            <Plus size={16} />
+                            Novo <span className="hidden md:inline">Agendamento</span>
                         </button>
                     </div>
                 </div>
@@ -256,21 +256,21 @@ const SchedulingInterface: React.FC = () => {
                     {/* Week Days Header */}
                     <div className="grid grid-cols-7 border-b border-gray-200">
                         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                            <div key={day} className="py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                            <div key={day} className="py-2 md:py-3 text-center text-[10px] md:text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
                                 {day}
                             </div>
                         ))}
                     </div>
 
                     {/* Days Grid */}
-                    <div className="grid grid-cols-7 flex-1 overflow-y-auto custom-scrollbar gap-2 bg-gray-50 p-2">
+                    <div className="grid grid-cols-7 flex-1 overflow-y-auto custom-scrollbar gap-px md:gap-2 bg-gray-200 md:bg-gray-50 p-px md:p-2 border-b md:border-none">
                         {renderCalendarDays()}
                     </div>
                 </div>
             </div>
 
             {/* Side Panel - Agenda Details */}
-            <div className="w-[350px] bg-white border-l border-gray-200 flex flex-col h-full shadow-lg z-10">
+            <div className="w-full md:w-[350px] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col h-[40%] md:h-full shadow-lg z-10 order-2 md:order-2">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                     <h3 className="text-lg font-bold text-gray-800">Agenda do Dia</h3>
                     <p className="text-emerald-600 font-medium flex items-center gap-2 mt-1">
