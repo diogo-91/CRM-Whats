@@ -79,62 +79,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
       </nav>
 
       <div className="mt-auto pb-4 space-y-4 flex flex-col items-center relative" ref={menuRef}>
-
-        {/* Utility Menu Popover */}
-        {isMenuOpen && (
-          <div className="absolute left-12 bottom-14 w-60 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-left-4 origin-bottom-left">
-            <div className="px-4 py-2 border-b border-gray-100 bg-gray-50">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Utilidades</p>
-            </div>
-
-            <div className="p-1">
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors">
-                <HelpCircle size={16} className="text-blue-500" />
-                <span>Central de Ajuda</span>
-              </button>
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors">
-                <Keyboard size={16} className="text-purple-500" />
-                <span>Atalhos de Teclado</span>
-              </button>
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors">
-                <Moon size={16} className="text-gray-500" />
-                <div className="flex-1 flex justify-between items-center">
-                  <span>Modo Escuro</span>
-                  <div className="w-8 h-4 bg-gray-200 rounded-full relative">
-                    <div className="w-4 h-4 bg-white rounded-full shadow-sm absolute left-0 top-0 border border-gray-300"></div>
-                  </div>
-                </div>
-              </button>
-              <div className="h-px bg-gray-100 my-1"></div>
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors">
-                <Zap size={16} className="text-yellow-500" />
-                <span>Novidades da Versão</span>
-                <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded ml-auto">NEW</span>
-              </button>
-              <a href="#" className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors group">
-                <ExternalLink size={16} className="text-gray-400 group-hover:text-emerald-500" />
-                <span>Documentação API</span>
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* The Green Menu Button */}
-        <div
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className={`w-8 h-8 rounded flex items-center justify-center text-white cursor-pointer transition-all shadow-sm
-                ${isMenuOpen ? 'bg-emerald-700 scale-95 ring-2 ring-emerald-500 ring-offset-1 ring-offset-[#111B21]' : 'bg-emerald-600 hover:bg-emerald-500'}
-            `}
-        >
-          <Menu size={16} />
-        </div>
-
-        <NavItem
-          icon={<Settings size={20} />}
-          active={activeView === 'settings'}
-          onClick={() => onViewChange('settings')}
-          title="Configurações"
-        />
       </div>
     </div>
   );
