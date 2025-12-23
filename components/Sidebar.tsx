@@ -84,12 +84,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, isOpen, onC
             onClick={() => { onViewChange('reports'); onClose(); }}
           />
 
-          <NavItem
+          {/*          <NavItem
             icon={<LayoutGrid size={20} />}
             label="Kanban"
             active={activeView === 'kanban'}
             onClick={() => { onViewChange('kanban'); onClose(); }}
-          />
+          /> */}
 
           <NavItem
             icon={<MessageSquare size={20} />}
@@ -105,12 +105,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, isOpen, onC
             onClick={() => { onViewChange('scheduling'); onClose(); }}
           />
 
-          <NavItem
+          {/*          <NavItem
             icon={<Send size={20} />}
             label="Transmissão"
             active={activeView === 'broadcast'}
             onClick={() => { onViewChange('broadcast'); onClose(); }}
-          />
+          /> */}
 
           <NavItem
             icon={<Users size={20} />}
@@ -119,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, isOpen, onC
             onClick={() => { onViewChange('contacts'); onClose(); }}
           />
 
-          <NavItem
+          {/*          <NavItem
             icon={<ImageIcon size={20} />}
             label="Mídia"
             active={activeView === 'media'}
@@ -138,7 +138,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, isOpen, onC
             label="Configurações"
             active={activeView === 'settings'}
             onClick={() => { onViewChange('settings'); onClose(); }}
-          />
+          /> */}
         </nav>
 
         {/* Logout Button */}
