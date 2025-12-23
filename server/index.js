@@ -418,19 +418,24 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
 // URL para configurar na Evolution: http://SEU_IP_OU_TUNNEL:3001/api/webhooks/evolution
 app.post('/api/webhooks/evolution', async (req, res) => {
   // Evolution envia payload com dados da mensagem
-  console.log('--- EXECUTANDO WEBHOOK EVOLUTION ---');
-  console.log('Headers:', req.headers);
-  console.log('Body:', JSON.stringify(req.body, null, 2));
+  // --- Robustez para n8n/Forwarding ---
+  // O n8n pode enviar o corpo aninhado em 'body' ou como array
+  let payload = req.body;
 
-  if (!req.body) {
-    console.log('Webhook recebido sem corpo (body empty)');
-    return res.sendStatus(200);
+  if (Array.isArray(payload) && payload.length > 0) {
+    payload = payload[0];
+  } else if (payload && payload.body && (payload.body.data || payload.body.event)) {
+    // Caso o n8n tenha aninhado o real payload dentro de 'body'
+    payload = payload.body;
   }
 
-  const { data, sender, eventType, event } = req.body;
+  console.log('--- EXECUTANDO WEBHOOK (Payload Processado) ---');
+  // console.log('Payload:', JSON.stringify(payload, null, 2)); // Comentado para poluir menos se for grande
+
+  const { data, sender, eventType, event } = payload;
 
   if (!data && !eventType && !event) {
-    console.log('Payload do webhook inválido ou incompleto');
+    console.log('Payload do webhook inválido ou incompleto (sem data/event)');
     return res.sendStatus(200);
   }
 
@@ -441,7 +446,7 @@ app.post('/api/webhooks/evolution', async (req, res) => {
   }
 
   const msgData = data.message || data;
-  if (!msgData || data.key.fromMe) return res.sendStatus(200);
+  if (!msgData || (data.key && data.key.fromMe)) return res.sendStatus(200);
 
   try {
     const remoteJid = data.key.remoteJid; // ex: 553199999999@s.whatsapp.net
