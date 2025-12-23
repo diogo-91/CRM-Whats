@@ -263,7 +263,7 @@ const SchedulingInterface: React.FC = () => {
                     </div>
 
                     {/* Days Grid */}
-                    <div className="grid grid-cols-7 flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-7 flex-1 overflow-y-auto custom-scrollbar gap-2 bg-gray-50 p-2">
                         {renderCalendarDays()}
                     </div>
                 </div>
