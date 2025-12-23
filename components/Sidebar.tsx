@@ -5,7 +5,12 @@ import {
   Calendar,
   Users,
   LogOut,
-  X
+  X,
+  LayoutGrid,
+  Send,
+  Image as ImageIcon,
+  Settings,
+  Plus
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -71,12 +76,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, isOpen, onC
           </button>
         </div>
 
-        <nav className="flex flex-col space-y-2 flex-1">
+        <nav className="flex flex-col space-y-1 flex-1 overflow-y-auto custom-scrollbar">
           <NavItem
             icon={<BarChart2 size={20} />}
             label="Relatórios"
             active={activeView === 'reports'}
             onClick={() => { onViewChange('reports'); onClose(); }}
+          />
+
+          <NavItem
+            icon={<LayoutGrid size={20} />}
+            label="Kanban"
+            active={activeView === 'kanban'}
+            onClick={() => { onViewChange('kanban'); onClose(); }}
           />
 
           <NavItem
@@ -94,10 +106,38 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, isOpen, onC
           />
 
           <NavItem
+            icon={<Send size={20} />}
+            label="Transmissão"
+            active={activeView === 'broadcast'}
+            onClick={() => { onViewChange('broadcast'); onClose(); }}
+          />
+
+          <NavItem
             icon={<Users size={20} />}
             label="Contatos"
             active={activeView === 'contacts'}
             onClick={() => { onViewChange('contacts'); onClose(); }}
+          />
+
+          <NavItem
+            icon={<ImageIcon size={20} />}
+            label="Mídia"
+            active={activeView === 'media'}
+            onClick={() => { onViewChange('media'); onClose(); }}
+          />
+
+          <NavItem
+            icon={<Plus size={20} />}
+            label="Novo"
+            active={activeView === 'new'}
+            onClick={() => { onViewChange('new'); onClose(); }}
+          />
+
+          <NavItem
+            icon={<Settings size={20} />}
+            label="Configurações"
+            active={activeView === 'settings'}
+            onClick={() => { onViewChange('settings'); onClose(); }}
           />
         </nav>
 

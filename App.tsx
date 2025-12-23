@@ -21,6 +21,7 @@ const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:300
 function AppContent() {
   const { isAuthenticated, token, socket } = useAuth();
   const [currentView, setCurrentView] = useState<'kanban' | 'chat' | 'reports' | 'scheduling' | 'broadcast' | 'contacts' | 'media' | 'new' | 'settings'>('chat');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [columns, setColumns] = useState<ColumnType[]>(INITIAL_DATA);
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedCard, setDraggedCard] = useState<{ cardId: string; sourceColId: string } | null>(null);
@@ -157,8 +158,6 @@ function AppContent() {
     return <LoginInterface />;
   }
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   return (
     <div className="flex h-screen bg-[#DFE3E5] overflow-hidden font-sans">
       <Sidebar
@@ -228,7 +227,7 @@ function AppContent() {
                 <div className="flex space-x-0.5 text-yellow-400 mb-1">
                   <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
                 </div>
-                <div className="text-xs font-serif text-gray-300">Google Reviews</div>
+                <div className="text-xs font-serif text-gray-300">Avaliações Google</div>
               </div>
             </div>
           </>

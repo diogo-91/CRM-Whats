@@ -373,7 +373,7 @@ const AppointmentCard: React.FC<{ appointment: Appointment }> = ({ appointment }
                 <div className="h-3 w-[1px] bg-gray-300"></div>
                 <div className="flex items-center gap-1.5 capitalize">
                     {getTypeIcon(appointment.type)}
-                    {appointment.type}
+                    {appointment.type === 'meeting' ? 'Reunião' : appointment.type === 'call' ? 'Chamada' : 'Demostração'}
                 </div>
             </div>
 
