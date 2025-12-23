@@ -24,11 +24,11 @@ export const evolutionService = {
             console.log(`[Evolution] Enviando mensagem para: ${cleanNumber}`);
 
             const apiUrl = `${API_URL}/message/sendText/${INSTANCE}`;
+
+            // Tentar formato alternativo da Evolution API v2
             const payload = {
-                number: cleanNumber, // Evolution v2 aceita sem @s.whatsapp.net
-                textMessage: {
-                    text: text
-                }
+                number: cleanNumber,
+                text: text
             };
 
             const headers = {
@@ -45,6 +45,7 @@ export const evolutionService = {
         } catch (error) {
             console.error('[Evolution] Erro ao enviar mensagem:', error.response?.data || error.message);
             console.error('[Evolution] Status:', error.response?.status);
+            console.error('[Evolution] Response completo:', error.response);
             throw error;
         }
     },
