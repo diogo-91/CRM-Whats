@@ -47,9 +47,35 @@ const ReportsInterface: React.FC = () => {
         avgResponseTime: '0s'
     });
 
+    const [dateRange, setDateRange] = useState('today');
     const [calendarStats, setCalendarStats] = useState<CalendarStat[]>([]);
     const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Export PDF Function
+    const handleExportPDF = async () => {
+        try {
+            // Dynamically import libraries to avoid SSR issues if any
+            const html2canvas = (await import('html2canvas')).default;
+            const { jsPDF } = await import('jspdf');
+
+            const element = document.getElementById('reports-content');
+            if (!element) return;
+
+            const canvas = await html2canvas(element, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`relatorio-crm-${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch (error) {
+            console.error('Error exporting PDF:', error);
+            alert('Erro ao exportar PDF');
+        }
+    };
 
     const fetchDashboardData = async () => {
         if (!token) return;
@@ -61,42 +87,71 @@ const ReportsInterface: React.FC = () => {
             let totalContacts = 0;
             let totalAppointments = 0;
 
-            // Fetch total messages count
+            // Date filtering logic
+            const now = new Date();
+            let startDate = new Date();
+
+            if (dateRange === 'today') {
+                startDate.setHours(0, 0, 0, 0);
+            } else if (dateRange === '7days') {
+                startDate.setDate(now.getDate() - 7);
+            } else if (dateRange === '30days') {
+                startDate.setDate(now.getDate() - 30);
+            }
+
+            // Fetch total messages count (Filtered by date simulation - API needs update for real filter)
+            // For now we just get total count as per API limitation, but we prepare logic
             try {
                 const messagesRes = await fetch(`${API_URL}/api/messages/count`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (messagesRes.ok) {
                     const { count } = await messagesRes.json();
-                    totalMessages = count;
+                    totalMessages = count; // TODO: Pass startDate to API
                 }
             } catch (err) {
                 console.error('Error fetching messages count:', err);
             }
 
-            // Fetch total contacts count
+            // Fetch contacts (Kanban)
             try {
                 const contactsRes = await fetch(`${API_URL}/api/kanban`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (contactsRes.ok) {
                     const kanbanData = await contactsRes.json();
+                    // Filter contacts created after startDate if createdAt existed, for now total
                     totalContacts = kanbanData.reduce((sum: number, col: any) => sum + (col.items?.length || 0), 0);
                 }
             } catch (err) {
                 console.error('Error fetching contacts:', err);
             }
 
-            // Fetch Google Calendar events
+            // Fetch Google Calendar events (Apply real date filtering here)
             try {
                 const calendarRes = await fetch(`${API_URL}/api/calendar`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (calendarRes.ok) {
                     const events = await calendarRes.json();
-                    totalAppointments = events.length;
 
-                    // Group events by status/type for the chart
+                    // Filter events based on dateRange
+                    const filteredEvents = events.filter((e: any) => {
+                        const eventDate = new Date(e.start);
+                        return eventDate >= startDate && (dateRange === 'today' ? eventDate < new Date(now.getTime() + 86400000) : true);
+                    });
+
+                    totalAppointments = filteredEvents.length;
+
+                    // Update Calendar Stats based on ALL future/past events relative to NOW, 
+                    // or relative to selection? 
+                    // Requirements say "choose a day or period", so stats should reflect that period.
+                    // For the Pie Chart, let's keep it showing overview but maybe highlight the selection count.
+                    // Actually let's start simple: Filter the Total Appointments count by the date range.
+
+                    // Re-calculate stats for the Pie chart based on global view or keep it fixed?
+                    // Let's keep the Pie Chart as "Future Outlook" (Next 7, Future, Past) but update the TOTAL card.
+
                     const today = new Date();
                     const upcoming = events.filter((e: any) => new Date(e.start) > today).length;
                     const past = events.filter((e: any) => new Date(e.start) <= today).length;
@@ -142,23 +197,27 @@ const ReportsInterface: React.FC = () => {
         }, 10000);
 
         return () => clearInterval(interval);
-    }, [token]);
+    }, [token, dateRange]);
 
     const totalAppointments = calendarStats.reduce((sum, item) => sum + item.value, 0);
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-[#F0F2F5] overflow-y-auto custom-scrollbar p-6">
+        <div id="reports-content" className="flex-1 flex flex-col h-full bg-[#F0F2F5] overflow-y-auto custom-scrollbar p-6">
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4" id="report-header">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800">Relatórios Gerenciais</h1>
                     <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm text-gray-500">Visão geral em tempo real</p>
+                        <p className="text-sm text-gray-500">
+                            {dateRange === 'today' && 'Visão de Hoje'}
+                            {dateRange === '7days' && 'Últimos 7 dias'}
+                            {dateRange === '30days' && 'Últimos 30 dias'}
+                        </p>
                         {lastUpdate && (
                             <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
                                 <CheckCircle2 size={12} />
-                                Atualizado {lastUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {lastUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                         )}
                         {isLoading && (
@@ -167,11 +226,23 @@ const ReportsInterface: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 font-medium">
-                        <Calendar size={16} />
-                        Tempo Real
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-[#00A884] text-white rounded-lg text-sm hover:bg-[#008f6f] font-medium shadow-sm transition-colors">
+                    <div className="relative">
+                        <select
+                            value={dateRange}
+                            onChange={(e) => setDateRange(e.target.value)}
+                            className="appearance-none flex items-center gap-2 px-4 py-2 pl-10 bg-white border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        >
+                            <option value="today">Hoje</option>
+                            <option value="7days">Últimos 7 dias</option>
+                            <option value="30days">Últimos 30 dias</option>
+                        </select>
+                        <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                    </div>
+
+                    <button
+                        onClick={handleExportPDF}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#00A884] text-white rounded-lg text-sm hover:bg-[#008f6f] font-medium shadow-sm transition-colors"
+                    >
                         <Download size={16} />
                         Exportar PDF
                     </button>

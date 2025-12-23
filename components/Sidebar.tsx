@@ -53,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
       {/* Logo and Clock */}
       <div className="mb-8 pl-1">
         <h1 className="text-white font-bold text-lg mb-1">CRM - WHATSAPP</h1>
-        <p className="text-gray-400 text-xs font-medium capitalize">
+        <p className="text-gray-400 text-[10px] font-medium capitalize whitespace-nowrap overflow-hidden text-ellipsis">
           {formatDateTime(currentTime)}
         </p>
       </div>
