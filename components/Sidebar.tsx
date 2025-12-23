@@ -43,12 +43,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     <div className="h-screen w-14 bg-[#111B21] flex flex-col items-center py-4 space-y-6 flex-shrink-0 z-20 border-r border-gray-800">
       <div className="mb-2">
         {/* Logo simulation */}
-        <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center text-white font-bold text-xs cursor-pointer hover:bg-green-600 transition-colors" onClick={() => onViewChange('chat')}>
-          <MessageSquare size={18} fill="currentColor" />
+        <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center text-white font-bold text-xs cursor-pointer hover:bg-green-600 transition-colors" onClick={() => onViewChange('kanban')}>
+          <span>CRM</span>
         </div>
       </div>
 
       <nav className="flex flex-col space-y-6 w-full items-center">
+        <NavItem
+          icon={<LayoutDashboard size={20} />}
+          active={activeView === 'kanban'}
+          onClick={() => onViewChange('kanban')}
+          title="Dashboard"
+        />
+
         <NavItem
           icon={<MessageSquare size={20} />}
           active={activeView === 'chat'}
