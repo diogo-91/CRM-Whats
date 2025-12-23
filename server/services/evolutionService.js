@@ -91,10 +91,32 @@ export const evolutionService = {
 
             const response = await axios.post(apiUrl, payload, { headers });
             return response.data;
-
         } catch (error) {
             console.error('Error sending media:', error.response?.data || error.message);
             throw error;
+        }
+    },
+
+    async fetchProfilePictureUrl(number) {
+        const { url: API_URL, token: API_TOKEN, instance: INSTANCE } = getConfig();
+        if (!API_URL || !API_TOKEN) return null;
+
+        try {
+            const cleanNumber = number.replace(/\D/g, '');
+            const formattedNumber = `${cleanNumber}@s.whatsapp.net`;
+
+            // Endpoint para buscar foto (Adjust based on exact Evolution version, v2 often uses /chat/fetchProfilePictureUrl)
+            const apiUrl = `${API_URL}/chat/fetchProfilePictureUrl/${INSTANCE}`;
+
+            const response = await axios.post(apiUrl, { number: formattedNumber }, {
+                headers: { 'apikey': API_TOKEN }
+            });
+
+            // Evolution usually returns { update: { profilePictureUrl: "url" } } or just { profilePictureUrl: "url" }
+            return response.data?.profilePictureUrl || null;
+        } catch (error) {
+            console.error('Error fetching profile picture:', error.message);
+            return null;
         }
     }
 };

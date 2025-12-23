@@ -383,25 +383,41 @@ app.post('/api/webhooks/evolution', async (req, res) => {
       where: { phone: { contains: phone } } // Busca simplificada
     });
 
+    // Tentar buscar foto de perfil se não tiver ou se for novo
+    let profilePicUrl = '';
+    try {
+      profilePicUrl = await evolutionService.fetchProfilePictureUrl(phone);
+    } catch (err) {
+      console.log('Falha ao buscar foto de perfil:', err.message);
+    }
+
     if (!contact) {
       // Criar lead se não existir
       contact = await prisma.contact.create({
         data: {
-          name: data.pushName || phone,
+          name: data.pushName || phone, // Usa o nome do WhatsApp ou o número
           phone: phone,
           columnId: 'leads', // Cai na coluna Leads
-          avatarUrl: '', // Evolution pode mandar foto, implementar depois
-          unreadCount: 1
+          avatarUrl: profilePicUrl || '',
+          unreadCount: 1,
+          status: 'online' // Assume online ao receber msg
         }
       });
     } else {
       // Atualizar contador de não lidas e mover para o topo
+      // Opcional: Atualizar foto se mudou. Por enquanto atualizamos se estiver vazia.
+      const updateData = {
+        unreadCount: { increment: 1 },
+        updatedAt: new Date(),
+        status: 'online'
+      };
+      if (profilePicUrl && !contact.avatarUrl) {
+        updateData.avatarUrl = profilePicUrl;
+      }
+
       await prisma.contact.update({
         where: { id: contact.id },
-        data: {
-          unreadCount: { increment: 1 },
-          updatedAt: new Date() // Força reordenação no Kanban
-        }
+        data: updateData
       });
     }
 
