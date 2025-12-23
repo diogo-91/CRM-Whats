@@ -433,15 +433,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                     </div>
 
                     {/* Chat Background Pattern */}
-                    <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")' }}></div>
+                    <div className="absolute inset-0 opacity-[0.4] pointer-events-none bg-repeat" style={{ backgroundImage: 'url("https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg")', backgroundSize: '400px' }}></div>
 
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar z-0 relative">
                         {displayedMessages.map((msg) => (
                             <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[75%] rounded-lg px-3 py-1.5 shadow-sm text-sm relative group ${msg.sender === 'me' ? 'bg-[#D9FDD3] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
+                                <div className={`max-w-[75%] rounded-lg px-2 py-1 shadow-sm text-sm relative group ${msg.sender === 'me' ? 'bg-[#D9FDD3] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
                                     {msg.mediaUrl ? (
-                                        <div className="mb-2">
+                                        <div className="mb-0">
                                             {msg.mediaType === 'image' && (
                                                 <img src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} alt="Mídia" className="rounded-lg max-w-full max-h-[300px] object-cover cursor-pointer hover:opacity-95" onClick={() => window.open(msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`)} />
                                             )}
@@ -462,16 +462,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                                                     </div>
                                                 </div>
                                             )}
-                                            {msg.text && (msg.text !== 'Mídia enviada' && msg.text !== 'Áudio enviado') && <p className="text-gray-800 pt-2">{msg.text}</p>}
+                                            {msg.text && (msg.text !== 'Mídia enviada' && msg.text !== 'Áudio enviado') && <p className="text-gray-800 pt-1 pb-4 px-1">{msg.text}</p>}
                                         </div>
                                     ) : (
-                                        <p className="text-gray-800 leading-relaxed pb-3">{msg.text}</p>
+                                        <p className="text-gray-800 leading-relaxed pb-2 pr-12 pl-1 pt-1">{msg.text}</p>
                                     )}
                                     <div className="absolute bottom-1 right-2 flex items-center space-x-1">
-                                        <span className="text-[10px] text-gray-500">{msg.time}</span>
+                                        <span className="text-[9px] text-gray-500 -mb-0.5">{msg.time}</span>
                                         {msg.sender === 'me' && (
                                             <span className="text-blue-500">
-                                                <CheckCheck size={14} />
+                                                <CheckCheck size={12} />
                                             </span>
                                         )}
                                     </div>

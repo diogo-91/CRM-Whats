@@ -50,10 +50,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
 
       <nav className="flex flex-col space-y-6 w-full items-center">
         <NavItem
-          icon={<LayoutDashboard size={20} />}
-          active={activeView === 'kanban'}
-          onClick={() => onViewChange('kanban')}
-          title="Dashboard"
+          icon={<BarChart2 size={20} />}
+          active={activeView === 'reports'}
+          onClick={() => onViewChange('reports')}
+          title="Relatórios"
         />
 
         <NavItem
@@ -61,13 +61,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
           active={activeView === 'chat'}
           onClick={() => onViewChange('chat')}
           title="Conversas"
-        />
-
-        <NavItem
-          icon={<BarChart2 size={20} />}
-          active={activeView === 'reports'}
-          onClick={() => onViewChange('reports')}
-          title="Relatórios"
         />
         <NavItem
           icon={<Calendar size={20} />}
