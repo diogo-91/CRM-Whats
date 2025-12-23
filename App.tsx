@@ -20,7 +20,7 @@ const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:300
 
 function AppContent() {
   const { isAuthenticated, token, socket } = useAuth();
-  const [currentView, setCurrentView] = useState<'kanban' | 'chat' | 'reports' | 'scheduling' | 'broadcast' | 'contacts' | 'media' | 'new' | 'settings'>('kanban');
+  const [currentView, setCurrentView] = useState<'kanban' | 'chat' | 'reports' | 'scheduling' | 'broadcast' | 'contacts' | 'media' | 'new' | 'settings'>('chat');
   const [columns, setColumns] = useState<ColumnType[]>(INITIAL_DATA);
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedCard, setDraggedCard] = useState<{ cardId: string; sourceColId: string } | null>(null);
