@@ -256,17 +256,29 @@ import { evolutionService } from './services/evolutionService.js';
 
 // --- Rotas de Mensagem (WhatsApp) ---
 
-// Obter histórico de mensagens
+// 6. Get messages for a contact
 app.get('/api/contacts/:id/messages', authenticateToken, async (req, res) => {
   try {
+    const { id } = req.params;
     const messages = await prisma.message.findMany({
-      where: { contactId: req.params.id },
+      where: { contactId: id },
       orderBy: { timestamp: 'asc' }
     });
     res.json(messages);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Erro ao buscar mensagens' });
+  }
+});
+
+// 7. Get total message count (for dashboard)
+app.get('/api/messages/count', authenticateToken, async (req, res) => {
+  try {
+    const count = await prisma.message.count();
+    res.json({ count });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao contar mensagens' });
   }
 });
 
