@@ -367,7 +367,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                     {filteredContacts.map(contact => (
                         <div
                             key={contact.id}
-                            onClick={() => onSelectContact(contact)}
+                            onClick={async () => {
+                                onSelectContact(contact);
+                                // Optimistically clear unread count
+                                setContacts(prev => prev.map(c =>
+                                    c.id === contact.id ? { ...c, unreadCount: 0 } : c
+                                ));
+                                // Call API to mark as read
+                                try {
+                                    await fetch(`${API_URL}/api/contacts/${contact.id}/read`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                } catch (err) {
+                                    console.error('Error marking as read:', err);
+                                }
+                            }}
                             className={`flex items-center px-3 py-3 cursor-pointer hover:bg-[#F5F6F6] border-b border-gray-100 transition-colors ${selectedContact?.id === contact.id ? 'bg-[#F0F2F5]' : ''}`}
                         >
                             <div className="relative flex-shrink-0">

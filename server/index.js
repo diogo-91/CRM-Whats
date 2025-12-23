@@ -271,6 +271,26 @@ app.get('/api/contacts/:id/messages', authenticateToken, async (req, res) => {
   }
 });
 
+// 6.5 Mark messages as read
+app.post('/api/contacts/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.contact.update({
+      where: { id },
+      data: { unreadCount: 0 }
+    });
+    // Optionally update messages status to 'READ' if you have that field
+    // await prisma.message.updateMany({
+    //   where: { contactId: id, fromMe: false, status: { not: 'READ' } },
+    //   data: { status: 'READ' }
+    // });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+    res.status(500).json({ error: 'Erro ao marcar como lido' });
+  }
+});
+
 // 7. Get total message count (for dashboard)
 app.get('/api/messages/count', authenticateToken, async (req, res) => {
   try {
