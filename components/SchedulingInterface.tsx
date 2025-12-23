@@ -141,19 +141,19 @@ const SchedulingInterface: React.FC = () => {
                 <div
                     key={day}
                     onClick={() => setSelectedDate(dateToCheck)}
-                    className={`h-24 border border-gray-100 p-2 cursor-pointer transition-colors relative group
-            ${isSelected ? 'bg-emerald-50 border-emerald-200' : 'hover:bg-gray-50 bg-white'}
+                    className={`h-28 border-2 p-3 cursor-pointer transition-all duration-200 relative group rounded-lg
+            ${isSelected ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-400 shadow-lg scale-105' : 'hover:bg-gradient-to-br hover:from-gray-50 hover:to-blue-50 bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'}
           `}
                 >
                     <div className="flex justify-between items-start">
                         <span className={`
-                text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full
-                ${isToday ? 'bg-[#00A884] text-white' : isSelected ? 'text-emerald-700' : 'text-gray-700'}
+                text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-all
+                ${isToday ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg scale-110' : isSelected ? 'bg-emerald-100 text-emerald-700' : 'text-gray-700 group-hover:bg-blue-100 group-hover:text-blue-700'}
             `}>
                             {day}
                         </span>
                         {dayAppointments.length > 0 && (
-                            <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded-full font-medium">
+                            <span className="text-[10px] bg-gradient-to-r from-blue-500 to-purple-500 text-white px-2 py-0.5 rounded-full font-bold shadow-md">
                                 {dayAppointments.length}
                             </span>
                         )}
@@ -161,12 +161,12 @@ const SchedulingInterface: React.FC = () => {
 
                     <div className="mt-2 space-y-1">
                         {dayAppointments.slice(0, 2).map((apt, idx) => (
-                            <div key={idx} className="text-[10px] truncate px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border-l-2 border-l-blue-400">
-                                {apt.startTime} {apt.title}
+                            <div key={idx} className="text-[10px] truncate px-2 py-1 rounded-md bg-gradient-to-r from-blue-50 to-purple-50 text-gray-700 border-l-3 border-l-blue-500 font-medium shadow-sm hover:shadow-md transition-shadow">
+                                <span className="font-bold text-blue-600">{apt.startTime}</span> {apt.title}
                             </div>
                         ))}
                         {dayAppointments.length > 2 && (
-                            <div className="text-[10px] text-gray-400 pl-1">
+                            <div className="text-[10px] text-purple-600 pl-2 font-semibold">
                                 + {dayAppointments.length - 2} mais
                             </div>
                         )}
@@ -184,52 +184,56 @@ const SchedulingInterface: React.FC = () => {
             <div className="flex-1 flex flex-col p-6 overflow-hidden">
 
                 {/* Header */}
-                <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
+                <div className="flex justify-between items-center mb-6 bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-2xl shadow-lg border border-emerald-100">
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                            <button onClick={handlePrevMonth} className="p-1 hover:bg-white rounded-md transition-shadow">
-                                <ChevronLeft size={20} className="text-gray-600" />
+                        <div className="flex items-center bg-white rounded-xl p-1.5 shadow-md">
+                            <button onClick={handlePrevMonth} className="p-2 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110">
+                                <ChevronLeft size={20} className="text-emerald-600" />
                             </button>
-                            <button onClick={handleNextMonth} className="p-1 hover:bg-white rounded-md transition-shadow">
-                                <ChevronRight size={20} className="text-gray-600" />
+                            <button onClick={handleNextMonth} className="p-2 hover:bg-emerald-50 rounded-lg transition-all hover:scale-110">
+                                <ChevronRight size={20} className="text-emerald-600" />
                             </button>
                         </div>
-                        <h2 className="text-xl font-bold text-gray-800">
-                            {monthNames[currentDate.getMonth()]} <span className="text-gray-400 font-normal">{currentDate.getFullYear()}</span>
-                        </h2>
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                <CalendarIcon size={28} className="text-emerald-600" />
+                                {monthNames[currentDate.getMonth()]}
+                            </h2>
+                            <p className="text-sm text-gray-500 font-medium">{currentDate.getFullYear()}</p>
+                        </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                         <button
                             onClick={handleGoogleConnect}
-                            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors text-sm"
+                            className="bg-white border-2 border-blue-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300 px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-md transition-all hover:scale-105 hover:shadow-lg"
                         >
                             <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" alt="Google" className="w-5 h-5" />
-                            Sincronizar Google
+                            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Sincronizar Google</span>
                         </button>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="bg-[#00A884] hover:bg-[#008f6f] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors"
+                            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
                         >
-                            <Plus size={18} />
+                            <Plus size={20} />
                             Novo Agendamento
                         </button>
                     </div>
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 flex-1 flex flex-col overflow-hidden">
                     {/* Week Days Header */}
-                    <div className="grid grid-cols-7 border-b border-gray-200">
+                    <div className="grid grid-cols-7 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
                         {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                            <div key={day} className="py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                            <div key={day} className="py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
                                 {day}
                             </div>
                         ))}
                     </div>
 
                     {/* Days Grid */}
-                    <div className="grid grid-cols-7 flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-7 flex-1 overflow-y-auto custom-scrollbar p-2 gap-2 bg-gradient-to-br from-gray-50 to-blue-50">
                         {renderCalendarDays()}
                     </div>
                 </div>
