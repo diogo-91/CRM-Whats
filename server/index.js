@@ -288,14 +288,14 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     }
 
     // 2. Salvar no Banco
+    // 2. Salvar no Banco
     const message = await prisma.message.create({
       data: {
         content: content || (mediaType === 'audio' ? 'Áudio enviado' : 'Mídia enviada'),
+        mediaUrl: mediaUrl,
+        mediaType: mediaType,
         fromMe: true,
         contactId: contact.id
-        // TODO: add mediaUrl/mediaType columns to Message model if needed. 
-        // For now storing text representation or relying on content.
-        // Ideally we should update schema to store mediaUrl.
       }
     });
 
@@ -347,9 +347,33 @@ app.post('/api/webhooks/evolution', async (req, res) => {
 
   try {
     const remoteJid = data.key.remoteJid; // ex: 553199999999@s.whatsapp.net
-    const content = msgData.conversation || msgData.extendedTextMessage?.text;
 
-    if (!content) return res.sendStatus(200);
+    let content = msgData.conversation || msgData.extendedTextMessage?.text;
+    let mediaUrl = null;
+    let mediaType = null;
+
+    // Detecção básica de tipos de mídia (Evolution API v2)
+    if (msgData.imageMessage) {
+      mediaType = 'image';
+      content = msgData.imageMessage.caption || 'Imagem recebida';
+      // Tenta usar a URL se disponível (pode não funcionar se for URL interna do WA sem tratamento)
+      // O ideal é a Evolution estar configurada para salvar e retornar URL pública ou Base64
+      mediaUrl = msgData.imageMessage.url;
+    } else if (msgData.videoMessage) {
+      mediaType = 'video';
+      content = msgData.videoMessage.caption || 'Vídeo recebido';
+      mediaUrl = msgData.videoMessage.url;
+    } else if (msgData.audioMessage) {
+      mediaType = 'audio';
+      content = 'Áudio recebido';
+      mediaUrl = msgData.audioMessage.url;
+    } else if (msgData.documentMessage) {
+      mediaType = 'document';
+      content = msgData.documentMessage.title || 'Documento recebido';
+      mediaUrl = msgData.documentMessage.url;
+    }
+
+    if (!content && !mediaUrl) return res.sendStatus(200);
 
     // Extrair número do JID
     const phone = remoteJid.split('@')[0];
@@ -384,7 +408,9 @@ app.post('/api/webhooks/evolution', async (req, res) => {
     // 2. Salvar Mensagem
     const message = await prisma.message.create({
       data: {
-        content,
+        content: content || 'Mídia',
+        mediaUrl: mediaUrl,
+        mediaType: mediaType,
         fromMe: false,
         contactId: contact.id
       }

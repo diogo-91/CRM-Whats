@@ -53,6 +53,8 @@ model User {
 model Message {
   id        String   @id @default(uuid())
   content   String
+  mediaUrl  String?
+  mediaType String?
   fromMe    Boolean  @default(false)
   timestamp DateTime @default(now())
   contactId String

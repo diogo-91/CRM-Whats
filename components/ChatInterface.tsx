@@ -12,6 +12,8 @@ import { generateResponseSuggestion } from '../services/geminiService';
 interface Message {
     id: string;
     text: string;
+    mediaUrl?: string;
+    mediaType?: 'image' | 'video' | 'audio' | 'document';
     sender: 'me' | 'them';
     time: string;
     status: 'sent' | 'delivered' | 'read';
@@ -100,6 +102,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                     const uiMessages: Message[] = data.map((msg: any) => ({
                         id: msg.id,
                         text: msg.content,
+                        mediaUrl: msg.mediaUrl,
+                        mediaType: msg.mediaType,
                         sender: msg.fromMe ? 'me' : 'them',
                         time: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         status: 'read'
@@ -132,6 +136,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                     const uiMsg: Message = {
                         id: newMsg.id,
                         text: newMsg.content,
+                        mediaUrl: newMsg.mediaUrl,
+                        mediaType: newMsg.mediaType,
                         sender: newMsg.fromMe ? 'me' : 'them',
                         time: new Date(newMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         status: 'read'
@@ -433,8 +439,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                     <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar z-0 relative">
                         {displayedMessages.map((msg) => (
                             <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[60%] rounded-lg px-3 py-1.5 shadow-sm text-sm relative group ${msg.sender === 'me' ? 'bg-[#D9FDD3] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
-                                    <p className="text-gray-800 leading-relaxed pb-3">{msg.text}</p>
+                                <div className={`max-w-[75%] rounded-lg px-3 py-1.5 shadow-sm text-sm relative group ${msg.sender === 'me' ? 'bg-[#D9FDD3] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
+                                    {msg.mediaUrl ? (
+                                        <div className="mb-2">
+                                            {msg.mediaType === 'image' && (
+                                                <img src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} alt="Mídia" className="rounded-lg max-w-full max-h-[300px] object-cover cursor-pointer hover:opacity-95" onClick={() => window.open(msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`)} />
+                                            )}
+                                            {msg.mediaType === 'video' && (
+                                                <video controls className="rounded-lg max-w-full max-h-[300px]" src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} />
+                                            )}
+                                            {msg.mediaType === 'audio' && (
+                                                <audio controls className="w-[240px] h-10 mt-1" src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`} />
+                                            )}
+                                            {msg.mediaType === 'document' && (
+                                                <div className="flex items-center gap-3 bg-black/5 p-3 rounded-lg cursor-pointer hover:bg-black/10 transition-colors" onClick={() => window.open(msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_URL}${msg.mediaUrl}`)}>
+                                                    <div className="bg-red-100 p-2 rounded text-red-500">
+                                                        <Paperclip size={20} />
+                                                    </div>
+                                                    <div className="flex-1 overflow-hidden">
+                                                        <span className="truncate block font-medium text-gray-700">Documento</span>
+                                                        <span className="text-xs text-gray-500 uppercase">{msg.mediaUrl?.split('.').pop()}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {msg.text && (msg.text !== 'Mídia enviada' && msg.text !== 'Áudio enviado') && <p className="text-gray-800 pt-2">{msg.text}</p>}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-800 leading-relaxed pb-3">{msg.text}</p>
+                                    )}
                                     <div className="absolute bottom-1 right-2 flex items-center space-x-1">
                                         <span className="text-[10px] text-gray-500">{msg.time}</span>
                                         {msg.sender === 'me' && (
