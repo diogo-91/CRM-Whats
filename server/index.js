@@ -443,7 +443,155 @@ app.post('/api/webhooks/evolution', async (req, res) => {
   }
 });
 
-// --- Socket.io Eventos ---
+// --- Google Calendar Integration ---
+import { google } from 'googleapis';
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback';
+
+const oauth2Client = new google.auth.OAuth2(
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI
+);
+
+// Rota para iniciar Auth
+app.get('/auth/google', (req, res) => {
+  const scopes = ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events'];
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: scopes,
+    state: JSON.stringify({ token: req.query.token }) // Passar JWT do usuário para vincular no callback
+  });
+  res.redirect(url);
+});
+
+// Callback do Google
+app.get('/auth/google/callback', async (req, res) => {
+  const { code, state } = req.query; // State contém o token JWT do usuário
+
+  if (!state) return res.status(400).send('State missing (Auth Token necessary)');
+
+  try {
+    const { token: userJwt } = JSON.parse(state);
+
+    // Verificar quem é o usuário
+    let userId;
+    try {
+      const decoded = jwt.verify(userJwt, JWT_SECRET);
+      userId = decoded.id;
+    } catch (e) {
+      return res.status(401).send('Invalid User Token');
+    }
+
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // Salvar tokens no usuário
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        googleAccessToken: tokens.access_token,
+        googleRefreshToken: tokens.refresh_token,
+        googleTokenExpiry: tokens.expiry_date ? tokens.expiry_date.toString() : null
+      }
+    });
+
+    // Redirecionar de volta para o frontend (Schedule page)
+    res.redirect(`${req.protocol}://${req.get('host').replace(':3001', ':5173')}/`); // Hack simples para dev. Em prod remove port.
+  } catch (error) {
+    console.error('Erro no callback do Google:', error);
+    res.status(500).send('Authentication failed');
+  }
+});
+
+// Helper para pegar cliente autenticado
+async function getGoogleClient(userId) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || !user.googleAccessToken) return null;
+
+  const client = new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI
+  );
+
+  client.setCredentials({
+    access_type: 'offline',
+    access_token: user.googleAccessToken,
+    refresh_token: user.googleRefreshToken,
+    expiry_date: user.googleTokenExpiry ? parseInt(user.googleTokenExpiry) : null
+  });
+
+  // Auto refresh if needed (googleapis handles this if refresh_token is present)
+  return client;
+}
+
+// Rota para listar eventos
+app.get('/api/calendar', authenticateToken, async (req, res) => {
+  try {
+    const client = await getGoogleClient(req.user.id);
+    if (!client) return res.status(401).json({ error: 'Google Calendar not connected' });
+
+    const calendar = google.calendar({ version: 'v3', auth: client });
+    const response = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: (new Date()).toISOString(),
+      maxResults: 20,
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+
+    const events = response.data.items.map(event => ({
+      id: event.id,
+      title: event.summary,
+      start: event.start.dateTime || event.start.date,
+      end: event.end.dateTime || event.end.date,
+      description: event.description,
+      location: event.location,
+      status: event.status
+    }));
+
+    res.json(events);
+  } catch (error) {
+    console.error('Google Calendar API Error:', error);
+    if (error.code === 401) {
+      // Token expired or revoked
+      return res.status(401).json({ error: 'Token expired', needsAuth: true });
+    }
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+// Rota para criar evento
+app.post('/api/calendar', authenticateToken, async (req, res) => {
+  try {
+    const client = await getGoogleClient(req.user.id);
+    if (!client) return res.status(401).json({ error: 'Google Calendar not connected' });
+
+    const { title, description, startTime, endTime } = req.body;
+
+    const calendar = google.calendar({ version: 'v3', auth: client });
+    const event = {
+      summary: title,
+      description: description,
+      start: { dateTime: new Date(startTime).toISOString() }, // '2023-01-01T10:00:00Z'
+      end: { dateTime: new Date(endTime).toISOString() },
+    };
+
+    const response = await calendar.events.insert({
+      calendarId: 'primary',
+      requestBody: event,
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error creating event:', error);
+    res.status(500).json({ error: 'Failed to create event' });
+  }
+});
+
 // --- Socket.io Eventos ---
 io.on('connection', (socket) => {
   console.log('Um usuário conectou:', socket.id);

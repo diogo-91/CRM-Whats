@@ -48,6 +48,11 @@ model User {
   password String
   name     String
   createdAt DateTime @default(now())
+  
+  // Google Integration
+  googleAccessToken  String?
+  googleRefreshToken String?
+  googleTokenExpiry  String?
 }
 
 model Message {
