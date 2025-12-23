@@ -99,37 +99,46 @@ const ReportsInterface: React.FC = () => {
                 startDate.setDate(now.getDate() - 30);
             }
 
-            // Fetch total messages count (Filtered by date simulation - API needs update for real filter)
-            // For now we just get total count as per API limitation, but we prepare logic
+            // Fetch total messages count (Filtered by date)
             try {
-                const messagesRes = await fetch(`${API_URL}/api/messages/count`, {
+                const queryParams = new URLSearchParams({
+                    startDate: startDate.toISOString(),
+                    ...(dateRange !== 'today' ? { endDate: new Date().toISOString() } : {})
+                });
+                const messagesRes = await fetch(`${API_URL}/api/messages/count?${queryParams}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (messagesRes.ok) {
                     const { count } = await messagesRes.json();
-                    totalMessages = count; // TODO: Pass startDate to API
+                    totalMessages = count;
                 }
             } catch (err) {
                 console.error('Error fetching messages count:', err);
             }
 
-            // Fetch contacts (Kanban)
+            // Fetch contacts (Kanban) - Filtered
             try {
-                const contactsRes = await fetch(`${API_URL}/api/kanban`, {
+                const queryParams = new URLSearchParams({
+                    startDate: startDate.toISOString()
+                    // contacts are usually cumulative, but we filter NEW contacts here?
+                    // actually if getKanbanData filters by createdAt gte startDate, it returns contacts created in that period.
+                    // This matches "New Contacts" metric.
+                });
+                const contactsRes = await fetch(`${API_URL}/api/kanban?${queryParams}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (contactsRes.ok) {
                     const kanbanData = await contactsRes.json();
-                    // Filter contacts created after startDate if createdAt existed, for now total
                     totalContacts = kanbanData.reduce((sum: number, col: any) => sum + (col.items?.length || 0), 0);
                 }
             } catch (err) {
                 console.error('Error fetching contacts:', err);
             }
 
-            // Fetch Google Calendar events (Apply real date filtering here)
+            // Fetch Google Calendar events
             try {
-                const calendarRes = await fetch(`${API_URL}/api/calendar`, {
+                const queryParams = new URLSearchParams({ startDate: startDate.toISOString() });
+                const calendarRes = await fetch(`${API_URL}/api/calendar?${queryParams}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (calendarRes.ok) {
