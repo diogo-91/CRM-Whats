@@ -211,7 +211,7 @@ const ReportsInterface: React.FC = () => {
     const totalAppointments = calendarStats.reduce((sum, item) => sum + item.value, 0);
 
     return (
-        <div id="reports-content" className="flex-1 flex flex-col h-full bg-[#F0F2F5] overflow-y-auto custom-scrollbar p-6">
+        <div id="reports-content" className="flex-1 flex flex-col h-full bg-[#F0F2F5] overflow-y-auto custom-scrollbar p-6 md:pt-6 pt-20">
 
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4" id="report-header">

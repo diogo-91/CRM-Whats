@@ -188,7 +188,7 @@ const SchedulingInterface: React.FC = () => {
     };
 
     return (
-        <div className="flex-1 flex flex-col md:flex-row h-full bg-[#DFE3E5] overflow-hidden">
+        <div className="flex-1 flex flex-col md:flex-row h-full bg-[#DFE3E5] overflow-hidden md:pt-0 pt-14">
 
             {/* Main Calendar Area */}
             <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden order-1 md:order-1">

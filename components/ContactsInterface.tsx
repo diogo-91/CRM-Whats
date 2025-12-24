@@ -118,7 +118,7 @@ const ContactsInterface: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#DFE3E5] overflow-hidden">
+    <div className="flex flex-col h-full bg-[#DFE3E5] overflow-hidden md:pt-0 pt-14">
 
       {/* Top Bar */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm z-10">
