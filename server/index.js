@@ -620,12 +620,14 @@ app.post('/api/webhooks/evolution', async (req, res) => {
 
     if (!contact) {
       // Criar lead se não existir
+      const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.pushName || phone)}&background=25D366&color=fff&size=128`;
+
       contact = await prisma.contact.create({
         data: {
           name: data.pushName || phone, // Usa o nome do WhatsApp ou o número
           phone: phone,
           columnId: 'leads', // Cai na coluna Leads
-          avatarUrl: profilePicUrl || '',
+          avatarUrl: profilePicUrl || defaultAvatar,
           unreadCount: 1,
           status: 'online' // Assume online ao receber msg
         }
@@ -638,8 +640,11 @@ app.post('/api/webhooks/evolution', async (req, res) => {
         updatedAt: new Date(),
         status: 'online'
       };
-      if (profilePicUrl && !contact.avatarUrl) {
-        updateData.avatarUrl = profilePicUrl;
+
+      // Se não tem avatar OU se conseguiu buscar um novo do WhatsApp
+      if (!contact.avatarUrl || (profilePicUrl && profilePicUrl !== contact.avatarUrl)) {
+        const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.name || phone)}&background=25D366&color=fff&size=128`;
+        updateData.avatarUrl = profilePicUrl || defaultAvatar;
       }
 
       await prisma.contact.update({
