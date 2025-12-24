@@ -472,10 +472,33 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
 // Webhook para receber confirmação de envio do n8n
 app.post('/api/webhooks/n8n-sent', async (req, res) => {
   console.log('[CRM] Recebendo confirmação de envio do n8n');
+  console.log('[CRM] Body recebido:', JSON.stringify(req.body, null, 2));
 
-  const { contactId, content, mediaUrl, mediaType, messageId, timestamp } = req.body;
+  let { contactId, phone, content, mediaUrl, mediaType, messageId, timestamp } = req.body;
 
   try {
+    // Se não tem contactId mas tem telefone, buscar o contato
+    if (!contactId && phone) {
+      console.log('[CRM] ContactId não fornecido, buscando por telefone:', phone);
+      const cleanPhone = phone.replace(/\D/g, '');
+      const contact = await prisma.contact.findFirst({
+        where: { phone: { contains: cleanPhone } }
+      });
+
+      if (contact) {
+        contactId = contact.id;
+        console.log('[CRM] Contato encontrado:', contactId);
+      } else {
+        console.error('[CRM] Contato não encontrado para telefone:', phone);
+        return res.status(404).json({ error: 'Contato não encontrado', phone });
+      }
+    }
+
+    if (!contactId) {
+      console.error('[CRM] ContactId não fornecido e telefone não encontrado');
+      return res.status(400).json({ error: 'contactId ou phone é obrigatório' });
+    }
+
     // Verificar se mensagem já existe (evitar duplicatas)
     if (messageId) {
       const existing = await prisma.message.findUnique({ where: { id: messageId } });
