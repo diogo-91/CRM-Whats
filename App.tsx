@@ -168,8 +168,8 @@ function AppContent() {
       />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Mobile Header */}
-        <div className="md:hidden bg-[#111B21] h-14 flex items-center px-4 justify-between border-b border-gray-800 flex-shrink-0">
+        {/* Mobile Header - Always Visible */}
+        <div className="md:hidden bg-[#111B21] h-14 flex items-center px-4 justify-between border-b border-gray-800 flex-shrink-0 fixed top-0 left-0 right-0 z-50">
           <button onClick={() => setIsSidebarOpen(true)} className="text-gray-300">
             <Menu size={24} />
           </button>
@@ -177,80 +177,84 @@ function AppContent() {
           <div className="w-6"></div> {/* Spacer for centering */}
         </div>
 
-        {currentView === 'kanban' ? (
-          <>
-            <div className="h-14 bg-[#F0F2F5] border-b border-gray-300 flex items-center px-4 justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold text-gray-700">Kanban CRM</h1>
-                <div title={isConnected ? "Conectado ao Servidor" : "Modo Offline (Dados Locais)"} className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full ${isConnected ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-                  {isConnected ? <Wifi size={12} /> : <WifiOff size={12} />}
-                  <span className="font-medium">{isConnected ? 'ONLINE' : 'OFFLINE'}</span>
-                </div>
-              </div>
+        {/* Content with top padding on mobile to account for fixed header */}
+        <div className="flex-1 flex flex-col h-full overflow-hidden md:pt-0 pt-14">
 
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Pesquisar contatos..."
-                  className="pl-9 pr-4 py-1.5 rounded-full bg-white border border-gray-300 text-sm focus:outline-none focus:border-emerald-500 w-64 transition-all"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-x-auto overflow-y-hidden p-2">
-              <div className="flex h-full space-x-2">
-                {filteredColumns.map((column) => (
-                  <div
-                    key={column.id}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop(column.id)}
-                    className="h-full"
-                  >
-                    <Column
-                      column={column}
-                      onDragStart={handleDragStart}
-                      onContactClick={handleContactClick}
-                    />
+          {currentView === 'kanban' ? (
+            <>
+              <div className="h-14 bg-[#F0F2F5] border-b border-gray-300 flex items-center px-4 justify-between flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-xl font-bold text-gray-700">Kanban CRM</h1>
+                  <div title={isConnected ? "Conectado ao Servidor" : "Modo Offline (Dados Locais)"} className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full ${isConnected ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                    {isConnected ? <Wifi size={12} /> : <WifiOff size={12} />}
+                    <span className="font-medium">{isConnected ? 'ONLINE' : 'OFFLINE'}</span>
                   </div>
-                ))}
-                <div className="w-4 flex-shrink-0"></div>
-              </div>
-            </div>
-
-            <div className="fixed bottom-6 right-6 z-50 animate-bounce-in pointer-events-none">
-              <div className="bg-[#1f3b4d] text-white p-3 rounded-lg shadow-xl flex flex-col items-center cursor-pointer border-2 border-white/10 pointer-events-auto hover:scale-105 transition-transform transform origin-bottom-right">
-                <span className="text-xl font-bold">+10.000</span>
-                <span className="text-[10px] uppercase tracking-wider mb-1">Usuários</span>
-                <div className="flex space-x-0.5 text-yellow-400 mb-1">
-                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
                 </div>
-                <div className="text-xs font-serif text-gray-300">Avaliações Google</div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Pesquisar contatos..."
+                    className="pl-9 pr-4 py-1.5 rounded-full bg-white border border-gray-300 text-sm focus:outline-none focus:border-emerald-500 w-64 transition-all"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                </div>
               </div>
-            </div>
-          </>
-        ) : currentView === 'chat' ? (
-          <ChatInterface
-            selectedContact={selectedContact}
-            onSelectContact={setSelectedContact}
-          />
-        ) : currentView === 'reports' ? (
-          <ReportsInterface />
-        ) : currentView === 'scheduling' ? (
-          <SchedulingInterface />
-        ) : currentView === 'broadcast' ? (
-          <BroadcastInterface />
-        ) : currentView === 'contacts' ? (
-          <ContactsInterface />
-        ) : currentView === 'media' ? (
-          <MediaInterface />
-        ) : currentView === 'new' ? (
-          <NewInterface onNavigate={setCurrentView} />
-        ) : (
-          <SettingsInterface />
-        )}
+
+              <div className="flex-1 overflow-x-auto overflow-y-hidden p-2">
+                <div className="flex h-full space-x-2">
+                  {filteredColumns.map((column) => (
+                    <div
+                      key={column.id}
+                      onDragOver={handleDragOver}
+                      onDrop={() => handleDrop(column.id)}
+                      className="h-full"
+                    >
+                      <Column
+                        column={column}
+                        onDragStart={handleDragStart}
+                        onContactClick={handleContactClick}
+                      />
+                    </div>
+                  ))}
+                  <div className="w-4 flex-shrink-0"></div>
+                </div>
+              </div>
+
+              <div className="fixed bottom-6 right-6 z-50 animate-bounce-in pointer-events-none">
+                <div className="bg-[#1f3b4d] text-white p-3 rounded-lg shadow-xl flex flex-col items-center cursor-pointer border-2 border-white/10 pointer-events-auto hover:scale-105 transition-transform transform origin-bottom-right">
+                  <span className="text-xl font-bold">+10.000</span>
+                  <span className="text-[10px] uppercase tracking-wider mb-1">Usuários</span>
+                  <div className="flex space-x-0.5 text-yellow-400 mb-1">
+                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                  </div>
+                  <div className="text-xs font-serif text-gray-300">Avaliações Google</div>
+                </div>
+              </div>
+            </>
+          ) : currentView === 'chat' ? (
+            <ChatInterface
+              selectedContact={selectedContact}
+              onSelectContact={setSelectedContact}
+            />
+          ) : currentView === 'reports' ? (
+            <ReportsInterface />
+          ) : currentView === 'scheduling' ? (
+            <SchedulingInterface />
+          ) : currentView === 'broadcast' ? (
+            <BroadcastInterface />
+          ) : currentView === 'contacts' ? (
+            <ContactsInterface />
+          ) : currentView === 'media' ? (
+            <MediaInterface />
+          ) : currentView === 'new' ? (
+            <NewInterface onNavigate={setCurrentView} />
+          ) : (
+            <SettingsInterface />
+          )}
+        </div> {/* Close content wrapper */}
       </main>
     </div>
   );
