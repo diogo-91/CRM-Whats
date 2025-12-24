@@ -587,12 +587,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                 ) : (
                     <div className="hidden md:flex flex-1 bg-[#F0F2F5] border-b-[6px] border-[#25D366] flex-col items-center justify-center text-center p-10">
                         <div className="bg-white rounded-full p-8 shadow-sm mb-6">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/2044px-WhatsApp.svg.png" className="w-24 h-24 opacity-50" alt="ZapFlow" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/2044px-WhatsApp.svg.png" className="w-24 h-24 opacity-50" alt="WhatsApp" />
                         </div>
-                        <h1 className="text-3xl font-light text-gray-700 mb-4">ZapFlow Web</h1>
+                        <h1 className="text-3xl font-light text-gray-700 mb-4">CRM - WhatsApp Web</h1>
                         <p className="text-sm text-gray-500 max-w-md">
                             Envie e receba mensagens sem precisar manter seu celular conectado. <br />
-                            Use o ZapFlow em até 4 aparelhos e 1 celular ao mesmo tempo.
+                            Use o CRM em até 4 aparelhos e 1 celular ao mesmo tempo.
                         </p>
                     </div>
                 )}

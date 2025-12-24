@@ -200,7 +200,7 @@ app.post('/auth/login', async (req, res) => {
 
 // 1. Rota de Teste
 app.get('/', (req, res) => {
-  res.send('ZapFlow API (Auth Secured) is running 🚀');
+  res.send('CRM WhatsApp API (Auth Secured) is running 🚀');
 });
 
 // Endpoint Temporário para Limpeza
@@ -769,23 +769,11 @@ app.get('/api/calendar', authenticateToken, async (req, res) => {
     const client = await getGoogleClient(req.user.id);
     if (!client) return res.status(401).json({ error: 'Google Calendar not connected' });
 
-    const { startDate } = req.query;
-    // Default to 'now' if no startDate provided, OR allow fetching past events if we are doing reports?
-    // If startDate is provided, use it. If not, maybe use 'now' as default or a fixed past date?
-    // For scheduling interface, we usually want future, but maybe seeing the past is good.
-    // Let's default to 'now' if no param, to preserve existing behavior for SchedulingInterface if it doesn't send params.
-    // Wait, SchedulingInterface might want to see past appointments too if user navigates back?
-    // Current SchedulingInterface doesn't send params and relies on default.
-    // Let's set default timeMin to 1 month ago? Or keeping 'now' is safer for performance if we only care about upcoming?
-    // I will use startDate if provided, else new Date().
-
-    const timeMin = startDate ? new Date(startDate).toISOString() : (new Date()).toISOString();
-
+    // Fetch ALL events without time restrictions
     const calendar = google.calendar({ version: 'v3', auth: client });
     const response = await calendar.events.list({
       calendarId: 'primary',
-      timeMin: timeMin,
-      maxResults: 50, // Increased from 20 to allow more data for reports
+      maxResults: 2500, // Fetch all events (Google Calendar max limit)
       singleEvents: true,
       orderBy: 'startTime',
     });

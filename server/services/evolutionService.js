@@ -4,7 +4,7 @@ import axios from 'axios';
 const getConfig = () => ({
     url: process.env.EVOLUTION_API_URL,
     token: process.env.EVOLUTION_API_TOKEN,
-    instance: process.env.EVOLUTION_INSTANCE || 'zapflow_main'
+    instance: process.env.EVOLUTION_INSTANCE || 'crm_main'
 });
 
 export const evolutionService = {

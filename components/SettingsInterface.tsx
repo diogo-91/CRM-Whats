@@ -121,7 +121,7 @@ const SettingsInterface: React.FC = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                         <input
                                             type="email"
-                                            value="admin@zapflow.com"
+                                            value="admin@crm.com"
                                             disabled
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                                         />
@@ -181,7 +181,7 @@ const SettingsInterface: React.FC = () => {
                                         </li>
                                         <li className="flex justify-between border-b border-gray-50 pb-2">
                                             <span>Plataforma</span>
-                                            <span className="font-medium">ZapFlow Cloud API</span>
+                                            <span className="font-medium">CRM Cloud API</span>
                                         </li>
                                     </ul>
                                 </div>
@@ -248,7 +248,7 @@ const SettingsInterface: React.FC = () => {
                                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Ativo</span>
                                     </div>
                                     <code className="block w-full bg-white p-2 rounded border border-gray-200 text-xs text-gray-600 font-mono break-all">
-                                        https://api.zapflow.com/v1/webhook/listener/8f92-23a...
+                                        https://api.crm.com/v1/webhook/listener/8f92-23a...
                                     </code>
                                 </div>
                             </div>
