@@ -470,7 +470,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                         <div className="absolute inset-0 opacity-[0.4] pointer-events-none bg-repeat" style={{ backgroundImage: 'url("https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg")', backgroundSize: '400px' }}></div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar z-0 relative">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar z-0 relative md:pt-6 pt-20">
                             {displayedMessages.map((msg) => (
                                 <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[75%] rounded-lg px-2 py-1 shadow-sm text-sm relative group ${msg.sender === 'me' ? 'bg-[#D9FDD3] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
