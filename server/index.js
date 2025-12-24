@@ -368,7 +368,29 @@ app.get('/api/messages/count', authenticateToken, async (req, res) => {
   }
 });
 
-// Enviar Mensagem
+// 8. Search contact by phone (for n8n integration - no auth required)
+app.get('/api/contacts/search', async (req, res) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) return res.status(400).json({ error: 'Phone number required' });
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    const contact = await prisma.contact.findFirst({
+      where: { phone: { contains: cleanPhone } }
+    });
+
+    if (!contact) {
+      return res.status(404).json({ error: 'Contact not found', phone: cleanPhone });
+    }
+
+    res.json({ id: contact.id, name: contact.name, phone: contact.phone });
+  } catch (error) {
+    console.error('[API] Error searching contact:', error);
+    res.status(500).json({ error: 'Error searching contact' });
+  }
+});
+
+// Enviar Mensagem via n8n
 app.post('/api/messages', authenticateToken, async (req, res) => {
   const { contactId, content, mediaUrl, mediaType } = req.body;
 
@@ -376,41 +398,120 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     const contact = await prisma.contact.findUnique({ where: { id: contactId } });
     if (!contact) return res.status(404).json({ error: 'Contato não encontrado' });
 
-    // 1. Enviar via Evolution API
-    if (mediaUrl) {
-      // Construct full URL if it's a relative local upload
-      const fullOne = mediaUrl.startsWith('http') ? mediaUrl : `${req.protocol}://${req.get('host')}${mediaUrl}`;
-      await evolutionService.sendMedia(contact.phone, fullOne, mediaType, content);
-    } else {
-      await evolutionService.sendMessage(contact.phone, content);
+    const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
+
+    if (!N8N_WEBHOOK_URL) {
+      console.warn('[CRM] N8N_WEBHOOK_URL não configurado, usando Evolution API diretamente');
+      // Fallback: enviar diretamente via Evolution API
+      if (mediaUrl) {
+        const fullOne = mediaUrl.startsWith('http') ? mediaUrl : `${req.protocol}://${req.get('host')}${mediaUrl}`;
+        await evolutionService.sendMedia(contact.phone, fullOne, mediaType, content);
+      } else {
+        await evolutionService.sendMessage(contact.phone, content);
+      }
+
+      // Salvar no banco
+      const message = await prisma.message.create({
+        data: {
+          content: content || (mediaType === 'audio' ? 'Áudio enviado' : 'Mídia enviada'),
+          mediaUrl: mediaUrl,
+          mediaType: mediaType,
+          fromMe: true,
+          contactId: contact.id
+        }
+      });
+
+      await prisma.contact.update({
+        where: { id: contact.id },
+        data: { updatedAt: new Date() }
+      });
+
+      io.emit('message:new', { ...message, contactId: contact.id });
+      return res.json(message);
     }
 
-    // 2. Salvar no Banco
-    // 2. Salvar no Banco
+    // 1. Enviar para n8n webhook
+    console.log('[CRM] Enviando mensagem para n8n:', { phone: contact.phone, content });
+
+    const payload = {
+      contactId: contact.id,
+      phone: contact.phone,
+      name: contact.name,
+      content: content,
+      mediaUrl: mediaUrl,
+      mediaType: mediaType,
+      timestamp: new Date().toISOString()
+    };
+
+    // Construir URL completa se for upload local
+    if (mediaUrl && !mediaUrl.startsWith('http')) {
+      payload.mediaUrl = `${req.protocol}://${req.get('host')}${mediaUrl}`;
+    }
+
+    const axios = (await import('axios')).default;
+    await axios.post(N8N_WEBHOOK_URL, payload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000
+    });
+
+    console.log('[CRM] Mensagem enviada para n8n com sucesso');
+
+    // 2. Responder imediatamente (a mensagem será salva quando n8n confirmar)
+    res.json({
+      success: true,
+      message: 'Mensagem enviada para processamento',
+      contactId: contact.id
+    });
+
+  } catch (error) {
+    console.error('[CRM] Erro ao enviar mensagem para n8n:', error.message);
+    res.status(500).json({ error: 'Erro ao enviar mensagem: ' + error.message });
+  }
+});
+
+// Webhook para receber confirmação de envio do n8n
+app.post('/api/webhooks/n8n-sent', async (req, res) => {
+  console.log('[CRM] Recebendo confirmação de envio do n8n');
+
+  const { contactId, content, mediaUrl, mediaType, messageId, timestamp } = req.body;
+
+  try {
+    // Verificar se mensagem já existe (evitar duplicatas)
+    if (messageId) {
+      const existing = await prisma.message.findUnique({ where: { id: messageId } });
+      if (existing) {
+        console.log('[CRM] Mensagem já existe, ignorando duplicata');
+        return res.sendStatus(200);
+      }
+    }
+
+    // Salvar mensagem no banco
     const message = await prisma.message.create({
       data: {
+        id: messageId,
         content: content || (mediaType === 'audio' ? 'Áudio enviado' : 'Mídia enviada'),
         mediaUrl: mediaUrl,
         mediaType: mediaType,
         fromMe: true,
-        contactId: contact.id
+        contactId: contactId,
+        timestamp: timestamp ? new Date(timestamp) : new Date()
       }
     });
 
-    // Atualizar timestamp do contato para subir no Kanban
+    // Atualizar timestamp do contato
     await prisma.contact.update({
-      where: { id: contact.id },
+      where: { id: contactId },
       data: { updatedAt: new Date() }
     });
 
-    // 3. Emitir para Frontend
-    console.log('Emitindo mensagem via socket:', { ...message, contactId: contact.id });
-    io.emit('message:new', { ...message, contactId: contact.id });
+    // Emitir para frontend via Socket.io
+    console.log('[CRM] Emitindo mensagem enviada via socket:', { ...message, contactId });
+    io.emit('message:new', { ...message, contactId });
 
-    res.json(message);
+    res.sendStatus(200);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao enviar mensagem' });
+    console.error('[CRM] Erro ao processar confirmação do n8n:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

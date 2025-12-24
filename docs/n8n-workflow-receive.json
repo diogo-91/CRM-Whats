@@ -1,0 +1,165 @@
+{
+    "name": "CRM - Recebimento de Mensagens",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "evolution-incoming",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-evolution",
+            "name": "Webhook - Evolution API",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Processar payload da Evolution API\nlet payload = $input.all()[0].json;\n\n// Lidar com diferentes formatos\nif (Array.isArray(payload) && payload.length > 0) {\n  payload = payload[0];\n} else if (payload && payload.body) {\n  payload = payload.body;\n}\n\nconst data = payload.data || payload;\nconst msgData = data.message || data;\n\n// Verificar se é mensagem própria\nif (data.key && data.key.fromMe) {\n  return { skip: true };\n}\n\n// Extrair informações\nconst phone = data.key.remoteJid.split('@')[0];\nconst content = msgData.conversation || \n                msgData.extendedTextMessage?.text || \n                'Mídia recebida';\n\nreturn {\n  phone,\n  content,\n  pushName: data.pushName || phone,\n  timestamp: new Date().toISOString(),\n  fromMe: data.key.fromMe || false,\n  originalPayload: payload\n};"
+            },
+            "id": "function-extract",
+            "name": "Extrair Dados",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{$json.skip}}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "if-not-own",
+            "name": "Verificar se não é própria",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$env.CRM_URL}}/api/webhooks/evolution",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{JSON.stringify($json.originalPayload)}}",
+                "options": {}
+            },
+            "id": "http-notify-crm-received",
+            "name": "Notificar CRM - Mensagem Recebida",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                850,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={ \"success\": true }",
+                "options": {}
+            },
+            "id": "respond-webhook-evolution",
+            "name": "Responder Evolution",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "notice": "OPCIONAL: Adicione aqui seu Agente de IA para processar a mensagem e gerar resposta automática. Conecte após 'Notificar CRM - Mensagem Recebida' e antes de 'Responder Evolution'."
+            },
+            "id": "sticky-note-ai",
+            "name": "Nota: Agente IA (Opcional)",
+            "type": "n8n-nodes-base.stickyNote",
+            "typeVersion": 1,
+            "position": [
+                850,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook - Evolution API": {
+            "main": [
+                [
+                    {
+                        "node": "Extrair Dados",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extrair Dados": {
+            "main": [
+                [
+                    {
+                        "node": "Verificar se não é própria",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Verificar se não é própria": {
+            "main": [
+                [
+                    {
+                        "node": "Notificar CRM - Mensagem Recebida",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Responder Evolution",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Notificar CRM - Mensagem Recebida": {
+            "main": [
+                [
+                    {
+                        "node": "Responder Evolution",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

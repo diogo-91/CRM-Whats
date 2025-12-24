@@ -1,0 +1,168 @@
+{
+    "name": "CRM - Envio de Mensagens",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "crm-send",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook - Receber do CRM",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Extrair e processar dados do CRM\nconst contactId = $json.contactId;\nconst phone = $json.phone;\nconst name = $json.name;\nconst content = $json.content;\nconst mediaUrl = $json.mediaUrl;\nconst mediaType = $json.mediaType;\nconst timestamp = $json.timestamp || new Date().toISOString();\n\n// Gerar ID único para a mensagem\nconst messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;\n\nreturn {\n  contactId,\n  phone,\n  name,\n  content,\n  mediaUrl,\n  mediaType,\n  timestamp,\n  messageId\n};"
+            },
+            "id": "function-process",
+            "name": "Processar Dados",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$env.EVOLUTION_API_URL}}/message/sendText/={{$env.EVOLUTION_INSTANCE}}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "={{$env.EVOLUTION_API_TOKEN}}"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "number",
+                            "value": "={{$json.phone}}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{$json.content}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "http-evolution",
+            "name": "Enviar via Evolution API",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$env.CRM_URL}}/api/webhooks/n8n-sent",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"contactId\": \"{{$json.contactId}}\",\n  \"content\": \"{{$json.content}}\",\n  \"mediaUrl\": \"{{$json.mediaUrl}}\",\n  \"mediaType\": \"{{$json.mediaType}}\",\n  \"messageId\": \"{{$json.messageId}}\",\n  \"timestamp\": \"{{$json.timestamp}}\"\n}",
+                "options": {}
+            },
+            "id": "http-notify-crm",
+            "name": "Notificar CRM",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={ \"success\": true, \"messageId\": \"{{$json.messageId}}\" }",
+                "options": {}
+            },
+            "id": "respond-webhook",
+            "name": "Responder Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook - Receber do CRM": {
+            "main": [
+                [
+                    {
+                        "node": "Processar Dados",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Processar Dados": {
+            "main": [
+                [
+                    {
+                        "node": "Enviar via Evolution API",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Enviar via Evolution API": {
+            "main": [
+                [
+                    {
+                        "node": "Notificar CRM",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Notificar CRM": {
+            "main": [
+                [
+                    {
+                        "node": "Responder Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}
