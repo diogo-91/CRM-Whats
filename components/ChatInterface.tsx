@@ -413,7 +413,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedContact, onSelect
                 {selectedContact ? (
                     <>
                         {/* Chat Header */}
-                        <div className="h-16 bg-[#F0F2F5] px-4 flex items-center justify-between border-b border-gray-200 z-10 relative">
+                        <div className="h-16 bg-[#F0F2F5] px-4 flex items-center justify-between border-b border-gray-200 z-10 relative md:top-0 top-14">
                             <div className="flex items-center">
                                 {/* Back Button Mobile */}
                                 <button
